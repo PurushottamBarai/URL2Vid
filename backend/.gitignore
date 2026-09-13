@@ -1,6 +1,13 @@
 node_modules
+
+tmp/
+*.mp4
+*.temp.mp4
+*.ts
+
 .env
 *.log
+
 .DS_Store
 .vscode
 .idea
