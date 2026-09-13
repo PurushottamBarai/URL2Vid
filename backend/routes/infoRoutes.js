@@ -1,8 +1,8 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const infoController = require('../controllers/infoController');
-const validateUrl = require('../middlewares/validateUrl');
+import { getInfo } from '../controllers/infoController.js';
+import validateUrl from '../middlewares/validateUrl.js';
 
-router.post('/', validateUrl, infoController.getInfo);
+router.post('/', validateUrl, getInfo);
 
-module.exports = router;
+export default router;

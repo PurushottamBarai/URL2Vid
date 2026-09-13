@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://url2vid.com/sitemap.xml

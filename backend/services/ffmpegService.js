@@ -1,4 +1,4 @@
-const ffmpeg = require('fluent-ffmpeg');
+import ffmpeg from 'fluent-ffmpeg';
 
 const convertToMp3 = (inputStream, responseStream) => {
   return ffmpeg(inputStream)
@@ -6,14 +6,14 @@ const convertToMp3 = (inputStream, responseStream) => {
     .audioBitrate('192k')
     .format('mp3')
     .on('error', (err) => {
-      console.error('ffmpeg error:', err);
+      console.error('ffmpeg conversion error:', err.message || err);
       if (!responseStream.headersSent) {
-          responseStream.status(500).end();
+          responseStream.status(500).json({ error: 'Audio conversion failed.' });
       }
     })
     .pipe(responseStream, { end: true });
 };
 
-module.exports = {
+export {
   convertToMp3
 };

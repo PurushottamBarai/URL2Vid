@@ -1,4 +1,10 @@
-const ytdlp = require('yt-dlp-exec');
+import ytdlp from 'yt-dlp-exec';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const fetchVideoInfo = async (url) => {
   return await ytdlp(url, {
@@ -9,11 +15,14 @@ const fetchVideoInfo = async (url) => {
   });
 };
 
-const path = require('path');
-const fs = require('fs');
-
-const downloadVideo = async (url, formatId) => {
-  const formatArg = formatId ? `${formatId}+bestaudio/best` : 'best';
+const downloadVideo = async (url, formatId, type) => {
+  let formatArg = formatId ? `${formatId}+bestaudio/best` : 'best';
+  
+  if (type === 'mute') {
+    formatArg = formatId ? `${formatId}` : 'bestvideo';
+  }
+  
+  // Appending a random string and timestamp to prevent collisions during concurrent downloads
   const fileName = `video_${Date.now()}_${Math.floor(Math.random() * 10000)}.mp4`;
   const tempDir = path.join(__dirname, '..', 'tmp');
   
@@ -34,16 +43,14 @@ const downloadVideo = async (url, formatId) => {
 };
 
 const getAudioStream = (url) => {
-  const ytDlpProcess = ytdlp.exec(url, {
+  return ytdlp.exec(url, {
     output: '-', // stdout
     format: 'bestaudio',
     noWarnings: true,
   }, { stdio: ['ignore', 'pipe', 'ignore'] });
-  
-  return ytDlpProcess;
-}
+};
 
-module.exports = {
+export {
   fetchVideoInfo,
   downloadVideo,
   getAudioStream

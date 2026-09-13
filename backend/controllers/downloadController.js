@@ -1,10 +1,16 @@
-const ytdlpService = require('../services/ytdlpService');
-const ffmpegService = require('../services/ffmpegService');
+import * as ytdlpService from '../services/ytdlpService.js';
+import * as snapchatService from '../services/snapchatService.js';
+import * as ffmpegService from '../services/ffmpegService.js';
 
-const fs = require('fs');
+import fs from 'fs';
 
-const downloadMedia = async (req, res) => {
+const downloadMedia = async (req, res, next) => {
   const { url, formatId, type } = req.query;
+
+  // Validate formatId to prevent potential command injection in yt-dlp-exec
+  if (formatId && !/^[a-zA-Z0-9_-]+$/.test(formatId)) {
+    return res.status(400).json({ error: 'Invalid formatId provided.' });
+  }
 
   try {
     if (type === 'audio') {
@@ -15,27 +21,29 @@ const downloadMedia = async (req, res) => {
       ffmpegService.convertToMp3(ytDlpProcess.stdout, res);
 
     } else {
-      // type === 'video'
-      const filePath = await ytdlpService.downloadVideo(url, formatId);
+      let filePath;
+      if (url.includes('snapchat.com')) {
+        filePath = await snapchatService.downloadVideo(url, type);
+      } else {
+        filePath = await ytdlpService.downloadVideo(url, formatId, type);
+      }
       
       res.download(filePath, 'video.mp4', (err) => {
         if (err) {
           console.error('Download stream error:', err);
         }
-        // Delete the temp file after sending
+        
+        // Ensure file exists before attempting to delete it (e.g. if yt-dlp failed early)
         if (fs.existsSync(filePath)) {
           fs.unlinkSync(filePath);
         }
       });
     }
   } catch (error) {
-    console.error('downloadController setup error:', error);
-    if (!res.headersSent) {
-      res.status(500).json({ error: 'Failed to initiate download.' });
-    }
+    next(error);
   }
 };
 
-module.exports = {
+export {
   downloadMedia
 };

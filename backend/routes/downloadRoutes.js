@@ -1,8 +1,8 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const downloadController = require('../controllers/downloadController');
-const validateUrl = require('../middlewares/validateUrl');
+import { downloadMedia } from '../controllers/downloadController.js';
+import validateUrl from '../middlewares/validateUrl.js';
 
-router.get('/', validateUrl, downloadController.downloadMedia);
+router.get('/', validateUrl, downloadMedia);
 
-module.exports = router;
+export default router;
