@@ -10,7 +10,6 @@ const fetchVideoInfo = async (url) => {
   return await ytdlp(url, {
     dumpJson: true,
     noWarnings: true,
-    noCallHome: true,
     noCheckCertificate: true,
   });
 };

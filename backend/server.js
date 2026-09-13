@@ -16,7 +16,16 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    useDefaults: true,
+    directives: {
+      "img-src": ["'self'", "https:", "data:", "blob:"],
+      "media-src": ["'self'", "https:", "data:", "blob:"],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+}));
 app.use(cors());
 app.use(express.json());
 app.use(rateLimiter);
