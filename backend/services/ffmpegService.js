@@ -1,4 +1,7 @@
 import ffmpeg from 'fluent-ffmpeg';
+import ffmpegStatic from 'ffmpeg-static';
+
+ffmpeg.setFfmpegPath(ffmpegStatic);
 
 const convertToMp3 = (inputStream, responseStream) => {
   return ffmpeg(inputStream)
