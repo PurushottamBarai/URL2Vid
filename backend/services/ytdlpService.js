@@ -13,6 +13,8 @@ const fetchVideoInfo = async (url) => {
     dumpJson: true,
     noWarnings: true,
     noCheckCertificate: true,
+    socketTimeout: 20,  // abort stalled connections after 20s
+    retries: 1,
   };
 
   if (isFacebook) {

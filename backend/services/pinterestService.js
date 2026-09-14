@@ -37,12 +37,22 @@ const fetchWithRedirects = async (url, maxRedirects = 5) => {
 };
 
 export const fetchVideoInfo = async (url) => {
-  // Pinterest short URLs (pin.it) need to be resolved first
-  const resolvedUrl = url.includes('pin.it')
-    ? await fetch(url, { method: 'HEAD', redirect: 'follow', headers: HEADERS }).then(r => r.url).catch(() => url)
-    : url;
+  // Fetch with redirect following and a unique UA to avoid bot blocks
+  let response;
+  try {
+    response = await fetch(url, {
+      headers: HEADERS,
+      redirect: 'follow',
+      signal: AbortSignal.timeout(15000),
+    });
+  } catch (err) {
+    throw new Error(`Couldn't reach Pinterest: ${err.message}`);
+  }
 
-  const response = await fetchWithRedirects(resolvedUrl);
+  if (!response.ok) {
+    throw new Error(`Pinterest returned HTTP ${response.status}. The pin may be private or removed.`);
+  }
+
   const html = await response.text();
 
   // Pinterest embeds video URL in og:video or og:video:url
@@ -55,7 +65,7 @@ export const fetchVideoInfo = async (url) => {
   const thumbnailMatch = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]+)"/);
 
   if (!videoUrlMatch) {
-    throw new Error("Couldn't extract this Pinterest video. The pin may not contain a video, or Pinterest has changed its page structure.");
+    throw new Error("Couldn't extract this Pinterest video. This pin may not contain a video, or it may be a board/category page rather than a specific video pin.");
   }
 
   const videoUrl = videoUrlMatch[1].replace(/&amp;/g, '&');

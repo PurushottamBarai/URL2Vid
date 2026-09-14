@@ -1,5 +1,5 @@
 const urlPatterns = [
-  { name: 'YouTube', regex: /^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)/ },
+  { name: 'YouTube', regex: /^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/|live\/)|youtu\.be\/)/ },
   { name: 'Instagram', regex: /^(?:https?:\/\/)?(?:www\.)?instagram\.com\/(?:p|reel|reels)\// },
   { name: 'Facebook', regex: /^(?:https?:\/\/)?(?:www\.)?(?:facebook\.com\/(?:.*\/videos\/|reel\/|reels\/|watch)|fb\.watch\/)/ },
   { name: 'X', regex: /^(?:https?:\/\/)?(?:www\.)?(?:twitter\.com|x\.com)\/.*\/status\// },
