@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
-import axios from 'axios';
-import { API_BASE_URL } from './config';
+import React, { useState, useCallback, useRef } from 'react';
+import { fetchVideoInfoAPI } from './services/api';
 
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
@@ -15,7 +14,15 @@ const App = () => {
   const [lastUrl, setLastUrl] = useState('');
   const [initialFormat, setInitialFormat] = useState('best'); // store format intent
 
-  const handleFetchInfo = async (url, format) => {
+  const abortControllerRef = useRef(null);
+
+  const handleFetchInfo = useCallback(async (url, format) => {
+    // Cancel any ongoing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
     setIsLoading(true);
     setError('');
     setVideoData(null);
@@ -23,10 +30,13 @@ const App = () => {
     setInitialFormat(format);
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/info`, { url });
-      setVideoData(response.data);
+      const data = await fetchVideoInfoAPI(url, abortControllerRef.current.signal);
+      setVideoData(data);
     } catch (err) {
-      if (err.response?.data?.error) {
+      if (err.name === 'CanceledError' || err.name === 'AbortError') {
+        return; // Request was cancelled
+      }
+      if (err.response && err.response.data && err.response.data.error) {
         setError(err.response.data.error);
       } else {
         setError('Failed to fetch video. Please check the URL and try again.');
@@ -34,7 +44,7 @@ const App = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col font-sans">

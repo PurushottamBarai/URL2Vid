@@ -1,24 +1,24 @@
 const urlPatterns = [
-  { name: 'YouTube', regex: /^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/|live\/)|youtu\.be\/)/ },
-  { name: 'Instagram', regex: /^(?:https?:\/\/)?(?:www\.)?instagram\.com\/(?:p|reel|reels)\// },
-  { name: 'Facebook', regex: /^(?:https?:\/\/)?(?:www\.)?(?:facebook\.com\/(?:.*\/videos\/|reel\/|reels\/|watch)|fb\.watch\/)/ },
-  { name: 'X', regex: /^(?:https?:\/\/)?(?:www\.)?(?:twitter\.com|x\.com)\/.*\/status\// },
-  { name: 'TikTok', regex: /^(?:https?:\/\/)?(?:www\.)?(?:tiktok\.com\/@.*\/video\/|vm\.tiktok\.com\/)/ },
-  { name: 'Vimeo', regex: /^(?:https?:\/\/)?(?:www\.)?vimeo\.com\/\d+/ },
-  { name: 'Dailymotion', regex: /^(?:https?:\/\/)?(?:www\.)?dailymotion\.com\/video\// },
+  { name: 'YouTube', regex: /^(?:https?:\/\/)?(?:(?:www\.|m\.)?youtube\.com\/(?:watch\?|shorts\/|live\/|embed\/)|youtu\.be\/)/ },
+  { name: 'Instagram', regex: /^(?:https?:\/\/)?(?:www\.)?instagram\.com\/(?:[^/?#]+\/)?(?:p|reel|reels|tv)\// },
+  { name: 'Facebook', regex: /^(?:https?:\/\/)?(?:(?:www\.|m\.)?facebook\.com\/(?:.*\/videos\/|reel\/|reels\/|watch|share\/v\/|story\.php)|fb\.watch\/)/ },
+  { name: 'X', regex: /^(?:https?:\/\/)?(?:(?:www\.|mobile\.)?(?:twitter\.com|x\.com))\/.*\/status\// },
+  { name: 'TikTok', regex: /^(?:https?:\/\/)?(?:(?:www\.|m\.)?tiktok\.com\/(?:@[^/?#]+\/video\/|v\/)|(?:vm|vt)\.tiktok\.com\/)/ },
+  { name: 'Vimeo', regex: /^(?:https?:\/\/)?(?:(?:www\.|player\.)?vimeo\.com\/)(?:(?:channels|album|groups)\/[^/]+\/)?(?:video\/)?\d+/ },
+  { name: 'Dailymotion', regex: /^(?:https?:\/\/)?(?:(?:www\.)?dailymotion\.com\/(?:video\/|embed\/video\/)|dai\.ly\/)/ },
   { name: 'Twitch', regex: /^(?:https?:\/\/)?(?:clips\.twitch\.tv\/|(?:www\.)?twitch\.tv\/.*\/clip\/)/ },
-  { name: 'Reddit', regex: /^(?:https?:\/\/)?(?:www\.)?reddit\.com\/r\/[^\/]+\/(?:comments|s)\// },
-  { name: 'LinkedIn', regex: /^(?:https?:\/\/)?(?:(?:www\.)?linkedin\.com\/(?:posts|feed\/update)\/|lnkd\.in\/)/ },
-  { name: 'Threads', regex: /^(?:https?:\/\/)?(?:www\.)?threads\.(?:com|net)\/.*\/post\// },
-  { name: 'Snapchat', regex: /^(?:https?:\/\/)?(?:www\.)?snapchat\.com\/(?:@[^\/]+\/)?spotlight\// },
-  { name: 'Pinterest', regex: /^(?:https?:\/\/)?(?:(?:www\.|[\w-]+\.)?pinterest\.com\/(?:pin\/|ideas\/|[^\/]+\/[^\/]+\/)|pin\.it\/)/ },
-  { name: 'Rumble', regex: /^(?:https?:\/\/)?(?:www\.)?rumble\.com\/.*\.html/ }
+  { name: 'Reddit', regex: /^(?:https?:\/\/)?(?:(?:www\.|old\.)?reddit\.com\/r\/[^/]+\/(?:comments|s)\/|v\.redd\.it\/|redd\.it\/)/ },
+  { name: 'LinkedIn', regex: /^(?:https?:\/\/)?(?:(?:www\.)?linkedin\.com\/(?:posts\/|feed\/update\/|video\/live\/)|lnkd\.in\/)/ },
+  { name: 'Threads', regex: /^(?:https?:\/\/)?(?:www\.)?threads\.(?:com|net)\/@[^/?#]+\/post\// },
+  { name: 'Snapchat', regex: /^(?:https?:\/\/)?(?:(?:www\.|story\.)?snapchat\.com\/(?:@[^/]+\/)?spotlight\/)/ },
+  { name: 'Pinterest', regex: /^(?:https?:\/\/)?(?:(?:[\w-]+\.)?pinterest\.[a-z]+(?:\.[a-z]+)?\/(?:pin\/|ideas\/|[^/?#]+\/[^/?#]+\/)|pin\.it\/)/ },
+  { name: 'Rumble', regex: /^(?:https?:\/\/)?(?:www\.)?rumble\.com\/(?:v\w[^/?#]*\.html|embed\/)/ },
 ];
 
 export const checkUrlStatus = (urlString) => {
   try {
     const url = new URL(urlString);
-    
+
     if (url.hostname.includes('spotify.com')) {
       return { isValid: false, error: 'Spotify links are not supported. We only extract from video platforms.', platform: null };
     }
@@ -27,13 +27,9 @@ export const checkUrlStatus = (urlString) => {
     if (match) {
       return { isValid: true, error: '', platform: match.name };
     }
-    
-    return { 
-      isValid: false, 
-      error: 'Please enter a valid, supported video URL.',
-      platform: null
-    };
-  } catch (e) {
+
+    return { isValid: false, error: 'Please enter a valid, supported video URL.', platform: null };
+  } catch {
     return { isValid: false, error: 'Please enter a valid URL.', platform: null };
   }
 };

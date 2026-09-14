@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 import { ChevronDown } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 
@@ -7,7 +8,7 @@ import { API_BASE_URL } from '../config';
  * thumbnails, formats, and handles the actual download triggers.
  * It receives 'data' (the API response object) and 'originalUrl' as props from App.jsx.
  */
-const VideoResults = ({ data, originalUrl, initialFormat }) => {
+const VideoResults = React.memo(({ data, originalUrl, initialFormat }) => {
   // Keeps track of which format (video/audio quality) the user has selected from the dropdown
   const [selectedFormat, setSelectedFormat] = useState(initialFormat || 'best');
 
@@ -82,13 +83,17 @@ const VideoResults = ({ data, originalUrl, initialFormat }) => {
                 value={selectedFormat}
                 onChange={(e) => setSelectedFormat(e.target.value)}
                 className="w-full appearance-none bg-surface border border-border text-text-primary rounded-md px-4 py-3 pr-10 focus:outline-none focus:border-accent font-mono text-sm cursor-pointer shadow-none"
+                aria-label="Select format"
               >
                 <option value="best" className="bg-surface">Best Video (MP4)</option>
-                {data.formats && data.formats.map((fmt, idx) => (
-                  <option key={fmt.formatId || idx} value={fmt.formatId} className="bg-surface">
-                    {getFormatLabel(fmt)}
-                  </option>
-                ))}
+                {data.formats && data.formats.map((fmt) => {
+                  const uniqueKey = fmt.formatId || fmt.url || Math.random().toString();
+                  return (
+                    <option key={uniqueKey} value={fmt.formatId} className="bg-surface">
+                      {getFormatLabel(fmt)}
+                    </option>
+                  );
+                })}
               </select>
               <ChevronDown className="absolute right-3 top-4 w-4 h-4 text-text-secondary pointer-events-none" />
             </div>
@@ -104,6 +109,19 @@ const VideoResults = ({ data, originalUrl, initialFormat }) => {
       </div>
     </div>
   );
+});
+
+VideoResults.displayName = 'VideoResults';
+
+VideoResults.propTypes = {
+  data: PropTypes.shape({
+    title: PropTypes.string,
+    duration: PropTypes.number,
+    thumbnail: PropTypes.string,
+    formats: PropTypes.arrayOf(PropTypes.object),
+  }),
+  originalUrl: PropTypes.string.isRequired,
+  initialFormat: PropTypes.string,
 };
 
 export default VideoResults;

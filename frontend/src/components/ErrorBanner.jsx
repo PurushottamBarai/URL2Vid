@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 const ErrorBanner = ({ message }) => {
   if (!message) return null;
@@ -8,6 +9,10 @@ const ErrorBanner = ({ message }) => {
       <p className="text-error font-medium text-sm">{message}</p>
     </div>
   );
+};
+
+ErrorBanner.propTypes = {
+  message: PropTypes.string,
 };
 
 export default ErrorBanner;
