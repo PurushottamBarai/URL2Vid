@@ -3,27 +3,15 @@ import PropTypes from 'prop-types';
 import { ChevronDown } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 
-/**
- * VideoResults takes the data returned by the backend and displays the video information,
- * thumbnails, formats, and handles the actual download triggers.
- * It receives 'data' (the API response object) and 'originalUrl' as props from App.jsx.
- */
 const VideoResults = React.memo(({ data, originalUrl, initialFormat }) => {
-  // Keeps track of which format (video/audio quality) the user has selected from the dropdown
   const [selectedFormat, setSelectedFormat] = useState(initialFormat || 'best');
 
-  // If there's no data yet, render nothing (conditional rendering)
   if (!data) return null;
 
-  /**
-   * handleDownload builds a unique URL pointing to our backend's /api/download route.
-   */
   const handleDownload = () => {
-    // Construct the backend download endpoint URL
     const url = new URL(`${API_BASE_URL}/download`, window.location.origin);
     url.searchParams.append('url', originalUrl);
     
-    // Add specific parameters based on what the user selected in the UI dropdown
     if (initialFormat === 'audio') {
       url.searchParams.append('type', 'audio');
     } else if (initialFormat === 'mute') {
@@ -38,13 +26,12 @@ const VideoResults = React.memo(({ data, originalUrl, initialFormat }) => {
       }
     }
     
-    // Create a temporary link element to trigger the browser's native download behavior
     const a = document.createElement('a');
     a.href = url.toString();
     a.download = '';
     document.body.appendChild(a);
-    a.click(); // Trigger download
-    document.body.removeChild(a); // Clean up
+    a.click();
+    document.body.removeChild(a);
   };
 
   const getFormatLabel = (fmt) => {
@@ -55,7 +42,6 @@ const VideoResults = React.memo(({ data, originalUrl, initialFormat }) => {
     <div className="w-full mt-4 animate-slide-up">
       <div className="card p-6 md:p-8 flex flex-col md:flex-row gap-6 md:gap-8 items-stretch">
         
-        {/* Left Side: Thumbnail */}
         {data.thumbnail && (
           <div className="w-full md:w-48 h-48 md:h-auto flex-shrink-0 relative overflow-hidden rounded-md bg-border/50">
             <img 
@@ -66,7 +52,6 @@ const VideoResults = React.memo(({ data, originalUrl, initialFormat }) => {
           </div>
         )}
 
-        {/* Right Side: Details & Actions */}
         <div className="flex-1 w-full flex flex-col gap-5 py-1">
           <div className="flex flex-col gap-1.5">
             <h2 className="text-text-primary text-xl font-bold line-clamp-2 leading-tight">

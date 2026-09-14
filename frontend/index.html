@@ -12,18 +12,104 @@
     <meta name="keywords" content="video downloader, url to video, download video from url, free video downloader, youtube downloader, tiktok video download, save video, mp4 download" />
     <meta name="author" content="URL2Vid" />
     
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://url2vid.onrender.com/" />
+    
     <!-- Open Graph (Facebook/LinkedIn) -->
     <meta property="og:type" content="website" />
     <meta property="og:title" content="URL2Vid — Download Videos from Any URL" />
     <meta property="og:description" content="Free, fast online video downloader. Download videos from your favorite platforms by pasting the URL." />
-    <meta property="og:image" content="/favicon.png" />
-    <meta property="og:url" content="https://url2vid.com/" />
+    <meta property="og:image" content="https://url2vid.onrender.com/logo.png" />
+    <meta property="og:url" content="https://url2vid.onrender.com/" />
     
     <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="URL2Vid — Download Videos from Any URL" />
     <meta name="twitter:description" content="Free, fast online video downloader. Download videos from your favorite platforms by pasting the URL." />
-    <meta name="twitter:image" content="/favicon.png" />
+    <meta name="twitter:image" content="https://url2vid.onrender.com/logo.png" />
+
+    <!-- JSON-LD Structured Data: WebApplication -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "URL2Vid",
+      "description": "Free online tool to download videos from YouTube, Instagram, TikTok, Facebook, Twitter (X), Reddit, and more.",
+      "applicationCategory": "MultimediaApplication",
+      "operatingSystem": "Any",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      }
+    }
+    </script>
+    
+    <!-- JSON-LD Structured Data: FAQPage -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Is URL2Vid free to use?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. URL2Vid is completely free — just paste a URL and download your video."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Do I need to create an account?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. There's no sign-up required. Paste your link and download instantly."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is it legal to download videos with URL2Vid?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "You should only download videos you own, have permission to use, or that are shared under a license allowing reuse. Downloading copyrighted content without permission may violate the original platform's terms of service."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What video quality can I download?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Quality depends on what the original platform provides — most videos are available in the highest resolution offered by the source."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I download videos on my phone?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. URL2Vid works on any device with a browser — mobile, tablet, or desktop."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Why isn't a video downloading?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Some videos may be private, age-restricted, or removed by the uploader, which can prevent downloading. Try a different public video link, or check that the URL was copied correctly."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does URL2Vid add a watermark to downloaded videos?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Videos are downloaded as close to the original as the source platform provides — no added watermark."
+          }
+        }
+      ]
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>

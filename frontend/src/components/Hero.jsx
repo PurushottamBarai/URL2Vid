@@ -21,9 +21,8 @@ const platformIcons = [
 const Hero = React.memo(({ onFetch, isLoading }) => {
   const [url, setUrl] = useState('');
   const [error, setError] = useState('');
-  const [format, setFormat] = useState('best'); // Default to Video
+  const [format, setFormat] = useState('best');
 
-  // Dynamically check URL to see if it matches a platform
   const activePlatform = checkUrlStatus(url).platform;
 
   const handleSubmit = (e) => {
