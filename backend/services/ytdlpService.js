@@ -17,6 +17,7 @@ const fetchVideoInfo = async (url) => {
     noCheckCertificate: true,
     socketTimeout: 20,
     retries: 1,
+    extractorArgs: 'youtube:player_client=default',
   };
 
   if (isFacebookUrl(url)) {
@@ -52,6 +53,7 @@ const downloadVideo = async (url, formatId, type) => {
     noWarnings: true,
     socketTimeout: 30,
     retries: 1,
+    extractorArgs: 'youtube:player_client=default',
   });
 
   return filePath;
@@ -62,6 +64,7 @@ const getAudioStream = (url) => {
     output: '-',
     format: 'bestaudio',
     noWarnings: true,
+    extractorArgs: 'youtube:player_client=default',
   }, { stdio: ['ignore', 'pipe', 'ignore'] });
 };
 

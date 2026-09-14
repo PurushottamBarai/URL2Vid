@@ -2,10 +2,12 @@ import React from 'react';
 
 const Navbar = () => {
   const scrollToSupported = (e) => {
-    e.preventDefault();
-    const el = document.getElementById('supported-platforms');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (window.location.pathname === '/') {
+      e.preventDefault();
+      const el = document.getElementById('supported-platforms');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
     }
   };
 
@@ -20,7 +22,7 @@ const Navbar = () => {
 
         <nav className="flex items-center gap-4 text-sm font-medium">
           <a
-            href="#supported-platforms"
+            href="/#supported-platforms"
             onClick={scrollToSupported}
             className="text-text-secondary hover:text-accent transition-colors text-xs sm:text-sm"
           >

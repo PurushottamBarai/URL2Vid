@@ -21,7 +21,7 @@ const platformIcons = [
 
 const SupportedPlatforms = () => {
   return (
-    <section className="w-full max-w-4xl mx-auto py-12 px-4 border-t border-border">
+    <section id="supported-platforms" className="w-full max-w-4xl mx-auto py-12 px-4 border-t border-border">
       <h2 className="text-3xl font-bold text-text-primary text-center mb-10">Supported Platforms</h2>
       
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">

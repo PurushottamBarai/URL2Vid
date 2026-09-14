@@ -32,8 +32,8 @@ const updateYtDlpBinary = async () => {
       return;
     }
 
-    process.stdout.write('[yt-dlp] Fetching latest release info from GitHub...\n');
-    const releaseRes = await fetch('https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest', {
+    process.stdout.write('[yt-dlp] Fetching latest nightly release info from GitHub...\n');
+    const releaseRes = await fetch('https://api.github.com/repos/yt-dlp/yt-dlp-nightly-builds/releases/latest', {
       headers: { 'User-Agent': 'URL2Vid/1.0' },
       signal: AbortSignal.timeout(15000),
     });
