@@ -5,14 +5,16 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node prerender.js",
     "preview": "vite preview"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
     "@vitejs/plugin-react": "^6.1.1",
     "autoprefixer": "^10.6.0",
+    "express": "^5.2.1",
     "postcss": "^8.5.28",
+    "puppeteer": "^25.11.0",
     "tailwindcss": "^4.3.3",
     "vite": "^8.3.0"
   },
