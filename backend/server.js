@@ -27,12 +27,10 @@ const updateYtDlpBinary = async () => {
       return;
     }
 
-    if (YOUTUBE_DL_PLATFORM === 'win32') {
-      process.stdout.write('[yt-dlp] Windows dev environment — skipping forced download\n');
-      return;
-    }
+    const isWin = YOUTUBE_DL_PLATFORM === 'win32';
+    const assetName = isWin ? 'yt-dlp.exe' : 'yt-dlp';
 
-    process.stdout.write('[yt-dlp] Fetching latest nightly release info from GitHub...\n');
+    process.stdout.write(`[yt-dlp] Fetching latest nightly release info from GitHub for ${assetName}...\n`);
     const releaseRes = await fetch('https://api.github.com/repos/yt-dlp/yt-dlp-nightly-builds/releases/latest', {
       headers: { 'User-Agent': 'URL2Vid/1.0' },
       signal: AbortSignal.timeout(15000),
@@ -41,9 +39,9 @@ const updateYtDlpBinary = async () => {
     if (!releaseRes.ok) throw new Error(`GitHub API returned HTTP ${releaseRes.status}`);
 
     const release = await releaseRes.json();
-    const asset = release.assets?.find(a => a.name === 'yt-dlp');
+    const asset = release.assets?.find(a => a.name === assetName);
 
-    if (!asset) throw new Error('yt-dlp Linux binary not found in release assets');
+    if (!asset) throw new Error(`${assetName} not found in release assets`);
 
     process.stdout.write(`[yt-dlp] Downloading ${release.tag_name}...\n`);
 

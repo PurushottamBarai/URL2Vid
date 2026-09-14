@@ -20,6 +20,11 @@ const fetchVideoInfo = async (url) => {
     extractorArgs: 'youtube:player_client=default',
   };
 
+  const cookiesPath = path.join(__dirname, '..', 'cookies.txt');
+  if (fs.existsSync(cookiesPath)) {
+    flags.cookies = cookiesPath;
+  }
+
   if (isFacebookUrl(url)) {
     flags.addHeader = [
       'referer:https://www.facebook.com/',
@@ -45,8 +50,8 @@ const downloadVideo = async (url, formatId, type) => {
   }
 
   const filePath = path.join(tempDir, fileName);
-
-  await ytdlp(url, {
+  
+  const flags = {
     output: filePath,
     format: formatArg,
     mergeOutputFormat: 'mp4',
@@ -54,18 +59,34 @@ const downloadVideo = async (url, formatId, type) => {
     socketTimeout: 30,
     retries: 1,
     extractorArgs: 'youtube:player_client=default',
-  });
+  };
 
-  return filePath;
+  const cookiesPath = path.join(__dirname, '..', 'cookies.txt');
+  if (fs.existsSync(cookiesPath)) {
+    flags.cookies = cookiesPath;
+  }
+
+  await ytdlp(url, flags);
+
+  const stream = fs.createReadStream(filePath);
+  stream.tempFilePath = filePath;
+  return stream;
 };
 
 const getAudioStream = (url) => {
-  return ytdlp.exec(url, {
+  const flags = {
     output: '-',
     format: 'bestaudio',
     noWarnings: true,
     extractorArgs: 'youtube:player_client=default',
-  }, { stdio: ['ignore', 'pipe', 'ignore'] });
+  };
+
+  const cookiesPath = path.join(__dirname, '..', 'cookies.txt');
+  if (fs.existsSync(cookiesPath)) {
+    flags.cookies = cookiesPath;
+  }
+
+  return ytdlp.exec(url, flags, { stdio: ['ignore', 'pipe', 'ignore'] });
 };
 
 export { fetchVideoInfo, downloadVideo, getAudioStream };

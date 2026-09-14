@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { fetchVideoInfoAPI } from '../services/api';
 
 import Hero from '../components/Hero';
@@ -18,6 +18,14 @@ const Home = () => {
   const [initialFormat, setInitialFormat] = useState('best');
 
   const abortControllerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   const handleFetchInfo = useCallback(async (url, format) => {
     if (abortControllerRef.current) {

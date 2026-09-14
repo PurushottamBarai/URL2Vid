@@ -2,26 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import https from 'https';
 import crypto from 'crypto';
-
-const GOOGLEBOT_HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
-  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-  'Accept-Language': 'en-US,en;q=0.9',
-};
-
-const BROWSER_HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-  'Accept-Language': 'en-US,en;q=0.9',
-};
-
-const DUMMY_FORMAT = {
-  format_id: 'best',
-  ext: 'mp4',
-  acodec: 'mp4a.40.2',
-  vcodec: 'avc1',
-  resolution: 'best',
-};
+import { GOOGLEBOT_HEADERS, REQUEST_HEADERS as BROWSER_HEADERS, DUMMY_FORMAT } from '../utils/constants.js';
 
 const normalizeThreadsUrl = (url) => {
   return url
@@ -119,25 +100,15 @@ export const downloadVideo = async (url) => {
   const info = await fetchVideoInfo(url);
   const rawMp4Url = info.formats[0].url;
 
-  const tmpDir = path.resolve('tmp');
-  if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
-
-  const filePath = path.join(tmpDir, `threads_${crypto.randomUUID()}.mp4`);
-  const fileStream = fs.createWriteStream(filePath);
-
   return new Promise((resolve, reject) => {
-    https.get(rawMp4Url, { headers: BROWSER_HEADERS }, (res) => {
+    const req = https.get(rawMp4Url, { headers: BROWSER_HEADERS, timeout: 30000 }, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        https.get(res.headers.location, { headers: BROWSER_HEADERS }, (res2) => {
-          res2.pipe(fileStream);
-          fileStream.on('finish', () => resolve(filePath));
-          fileStream.on('error', reject);
-        }).on('error', reject);
+        const req2 = https.get(res.headers.location, { headers: BROWSER_HEADERS, timeout: 30000 }, (res2) => {
+          resolve(res2);
+        }).on('error', reject).on('timeout', () => req2.destroy(new Error('Timeout')));
       } else {
-        res.pipe(fileStream);
-        fileStream.on('finish', () => resolve(filePath));
-        fileStream.on('error', reject);
+        resolve(res);
       }
-    }).on('error', reject);
+    }).on('error', reject).on('timeout', () => req.destroy(new Error('Timeout')));
   });
 };

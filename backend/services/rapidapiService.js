@@ -86,15 +86,20 @@ const fetchVideoInfo = async (url) => {
   };
 };
 
-const downloadVideo = async (url) => {
+const downloadVideo = async (url, formatId) => {
   const info = await fetchVideoInfo(url);
-  if (!info.formats || info.formats.length === 0) {
-    throw new Error('No formats found from RapidAPI');
+  
+  let downloadUrl;
+  if (formatId) {
+    const format = info.formats.find(f => f.format_id === formatId);
+    if (format) downloadUrl = format.url;
   }
-
-  const videoFormats = info.formats.filter(f => f.vcodec !== 'none');
-  const bestFormat = videoFormats.length > 0 ? videoFormats[0] : info.formats[0];
-  const downloadUrl = bestFormat.url;
+  
+  if (!downloadUrl) {
+    const videoFormats = info.formats.filter(f => f.vcodec !== 'none');
+    const bestFormat = videoFormats.length > 0 ? videoFormats[0] : info.formats[0];
+    downloadUrl = bestFormat.url;
+  }
 
   const response = await fetch(downloadUrl);
   if (!response.ok) {

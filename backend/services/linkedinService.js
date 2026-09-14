@@ -2,26 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import https from 'https';
 import crypto from 'crypto';
-
-const DUMMY_FORMAT = {
-  format_id: 'best',
-  ext: 'mp4',
-  acodec: 'mp4a.40.2',
-  vcodec: 'avc1',
-  resolution: 'best',
-};
-
-const CRAWLER_USER_AGENTS = [
-  'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
-  'LinkedInBot/1.0 (compatible; Mozilla/5.0; Apache-HttpClient +http://www.linkedin.com)',
-  'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
-];
-
-const makeHeaders = (ua) => ({
-  'User-Agent': ua,
-  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-  'Accept-Language': 'en-US,en;q=0.9',
-});
+import { DUMMY_FORMAT, LINKEDIN_CRAWLER_AGENTS as CRAWLER_USER_AGENTS, makeHeaders } from '../utils/constants.js';
 
 const resolveShortUrl = async (url) => {
   if (!url.includes('lnkd.in')) return url;
@@ -109,25 +90,15 @@ export const downloadVideo = async (url) => {
   const info = await fetchVideoInfo(url);
   const rawMp4Url = info.formats[0].url;
 
-  const tmpDir = path.resolve('tmp');
-  if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
-
-  const filePath = path.join(tmpDir, `linkedin_${crypto.randomUUID()}.mp4`);
-  const fileStream = fs.createWriteStream(filePath);
-
   return new Promise((resolve, reject) => {
-    https.get(rawMp4Url, { headers: makeHeaders(CRAWLER_USER_AGENTS[0]) }, (res) => {
+    const req = https.get(rawMp4Url, { headers: makeHeaders(CRAWLER_USER_AGENTS[0]), timeout: 30000 }, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        https.get(res.headers.location, { headers: makeHeaders(CRAWLER_USER_AGENTS[0]) }, (res2) => {
-          res2.pipe(fileStream);
-          fileStream.on('finish', () => resolve(filePath));
-          fileStream.on('error', reject);
-        }).on('error', reject);
+        const req2 = https.get(res.headers.location, { headers: makeHeaders(CRAWLER_USER_AGENTS[0]), timeout: 30000 }, (res2) => {
+          resolve(res2);
+        }).on('error', reject).on('timeout', () => req2.destroy(new Error('Timeout')));
       } else {
-        res.pipe(fileStream);
-        fileStream.on('finish', () => resolve(filePath));
-        fileStream.on('error', reject);
+        resolve(res);
       }
-    }).on('error', reject);
+    }).on('error', reject).on('timeout', () => req.destroy(new Error('Timeout')));
   });
 };

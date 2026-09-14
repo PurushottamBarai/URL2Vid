@@ -51,7 +51,7 @@ const FAQ = () => {
           >
             <button
               onClick={() => toggleFaq(index)}
-              className="w-full flex items-center justify-between p-5 text-left focus:outline-none focus:bg-base/50"
+              className="w-full flex items-center justify-between p-5 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus:bg-base/50"
               aria-expanded={openIndex === index}
             >
               <span className="font-semibold text-text-primary">{faq.question}</span>

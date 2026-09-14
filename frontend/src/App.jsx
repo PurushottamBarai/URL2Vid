@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
 import Navbar from './components/Navbar';
-import Home from './pages/Home';
-import NotFound from './pages/NotFound';
-import PlatformLanding from './pages/PlatformLanding';
+import LoadingSkeleton from './components/LoadingSkeleton';
 import { platformsData } from './data/platforms';
+
+const Home = lazy(() => import('./pages/Home'));
+const NotFound = lazy(() => import('./pages/NotFound'));
+const PlatformLanding = lazy(() => import('./pages/PlatformLanding'));
 
 const App = () => {
   return (
@@ -13,23 +15,23 @@ const App = () => {
       <div className="min-h-screen flex flex-col font-sans">
         <Navbar />
         
-        <Routes>
-          <Route path="/" element={<Home />} />
-          
-          {/* Dynamic Platform Routes */}
-          {platformsData.map((platform) => (
-            <Route 
-              key={platform.path} 
-              path={platform.path} 
-              element={<PlatformLanding {...platform} />} 
-            />
-          ))}
-          
-          {/* Alias/Redirect for X */}
-          <Route path="/x-video-downloader" element={<Navigate to="/twitter-video-downloader" replace />} />
-          
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <Suspense fallback={<div className="flex-1 flex items-center justify-center pt-14"><LoadingSkeleton /></div>}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            
+            {platformsData.map((platform) => (
+              <Route 
+                key={platform.path} 
+                path={platform.path} 
+                element={<PlatformLanding {...platform} />} 
+              />
+            ))}
+            
+            <Route path="/x-video-downloader" element={<Navigate to="/twitter-video-downloader" replace />} />
+            
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
 
         <footer className="w-full py-12 text-center text-text-secondary text-sm border-t border-border mt-auto">
           <p className="mb-2">Supported: YouTube, Instagram, Facebook, X, TikTok, Vimeo, Twitch, and more.</p>

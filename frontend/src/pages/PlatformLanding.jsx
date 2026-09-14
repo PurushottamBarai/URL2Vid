@@ -1,4 +1,5 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { fetchVideoInfoAPI } from '../services/api';
 import Hero from '../components/Hero';
 import VideoResults from '../components/VideoResults';
@@ -26,6 +27,14 @@ const PlatformLanding = ({
   const [openFaqIndex, setOpenFaqIndex] = useState(null);
 
   const abortControllerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   const handleFetchInfo = useCallback(async (url, format) => {
     if (abortControllerRef.current) {
@@ -58,7 +67,6 @@ const PlatformLanding = ({
     setOpenFaqIndex(openFaqIndex === index ? null : index);
   };
 
-  // Generate WebApp Schema
   const webAppSchema = {
     "@context": "https://schema.org",
     "@type": "WebApplication",
@@ -73,7 +81,6 @@ const PlatformLanding = ({
     }
   };
 
-  // Generate FAQ Schema
   const faqSchema = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -87,7 +94,6 @@ const PlatformLanding = ({
     }))
   };
 
-  // Combine schemas for the SEO component
   const combinedSchema = [webAppSchema, faqSchema];
 
   return (
@@ -98,10 +104,6 @@ const PlatformLanding = ({
         schema={combinedSchema} 
       />
 
-      {/* Hero / Input Section tailored slightly for this platform via Hero (Wait, Hero has its own H1 currently, let's modify Hero to accept title/subtitle props if provided, or just render them here. Actually, we'll keep Hero as is, but maybe pass overrides) */}
-      
-      {/* We need to pass custom H1 to Hero or render it here. Since Hero has a hardcoded H1, we should update Hero to accept title/subtitle props. Let's do that next. */}
-      
       <div className="w-full max-w-2xl mx-auto">
         <Hero 
           onFetch={handleFetchInfo} 
@@ -116,7 +118,6 @@ const PlatformLanding = ({
         )}
       </div>
 
-      {/* How To Steps */}
       <section className="w-full max-w-4xl mx-auto py-12 px-4 border-t border-border mt-8">
         <h2 className="text-3xl font-bold text-text-primary text-center mb-10">How to download from {platformName}</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -130,7 +131,6 @@ const PlatformLanding = ({
         </div>
       </section>
 
-      {/* Platform FAQ */}
       <section className="w-full max-w-4xl mx-auto py-12 px-4 border-t border-border mb-8">
         <h2 className="text-3xl font-bold text-text-primary text-center mb-10">{platformName} Downloader FAQ</h2>
         <div className="flex flex-col gap-4">
@@ -138,7 +138,8 @@ const PlatformLanding = ({
             <div key={index} className="border border-border rounded-lg bg-surface overflow-hidden transition-all">
               <button
                 onClick={() => toggleFaq(index)}
-                className="w-full flex items-center justify-between p-5 text-left focus:outline-none focus:bg-base/50"
+                aria-expanded={openFaqIndex === index}
+                className="w-full flex items-center justify-between p-5 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus:bg-base/50"
               >
                 <span className="font-semibold text-text-primary">{faq.question}</span>
                 <ChevronDown className={`w-5 h-5 text-text-secondary transition-transform duration-200 ${openFaqIndex === index ? 'rotate-180' : ''}`} />
@@ -151,7 +152,6 @@ const PlatformLanding = ({
         </div>
       </section>
 
-      {/* Internal Links */}
       <section className="w-full max-w-4xl mx-auto py-8 px-4 border-t border-border text-center">
         <p className="text-sm text-text-secondary mb-4">Check out our other tools:</p>
         <div className="flex flex-wrap justify-center gap-4 text-accent text-sm font-medium">
@@ -164,6 +164,22 @@ const PlatformLanding = ({
       </section>
     </main>
   );
+};
+
+PlatformLanding.propTypes = {
+  platformName: PropTypes.string.isRequired,
+  h1: PropTypes.string.isRequired,
+  intro: PropTypes.string.isRequired,
+  steps: PropTypes.arrayOf(PropTypes.shape({
+    title: PropTypes.string.isRequired,
+    desc: PropTypes.string.isRequired,
+  })).isRequired,
+  faqs: PropTypes.arrayOf(PropTypes.shape({
+    question: PropTypes.string.isRequired,
+    answer: PropTypes.string.isRequired,
+  })).isRequired,
+  metaTitle: PropTypes.string.isRequired,
+  metaDescription: PropTypes.string.isRequired,
 };
 
 export default PlatformLanding;

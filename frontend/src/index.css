@@ -31,7 +31,7 @@
 
 @layer components {
   .btn-primary {
-    @apply bg-accent hover:bg-accent-hover text-white font-bold py-3 px-6 rounded-md transition-colors focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-base outline-none active:scale-[0.98] flex items-center justify-center gap-2 border border-transparent shadow-none;
+    @apply bg-accent hover:bg-accent-hover text-white font-bold py-3 px-6 rounded-md transition-colors focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-base outline-none active:scale-[0.98] flex items-center justify-center gap-2 border border-transparent shadow-none cursor-pointer;
   }
   
   .input-field {

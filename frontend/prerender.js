@@ -24,11 +24,8 @@ const routes = [
 async function prerender() {
   console.log('Starting prerendering...');
 
-  // Start express server to serve the built static files
   const app = express();
   
-  // Serve static files from dist
-  // For any route, fallback to index.html so React Router can take over
   app.use(express.static(DIST_DIR));
   app.use((req, res) => {
     res.sendFile(path.join(DIST_DIR, 'index.html'));
@@ -47,25 +44,19 @@ async function prerender() {
     const page = await browser.newPage();
     console.log(`Prerendering ${route}...`);
     
-    // Disable requests for external resources that might delay networkidle0 (like analytics or external images) if needed
-    // But we want to capture standard hydration
-    
     await page.goto(`http://localhost:${PORT}${route}`, { waitUntil: 'networkidle0', timeout: 30000 });
     
-    // Give React a small extra buffer to finish any async effects (like meta tags update)
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    // Extract the full HTML including doctype
     const html = await page.evaluate(() => {
       return '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
     });
 
-    // Determine output path
     let outputPath;
     if (route === '/') {
       outputPath = path.join(DIST_DIR, 'index.html');
     } else if (route === '/404') {
-      outputPath = path.join(DIST_DIR, '404.html'); // specifically for hosts that look for 404.html
+      outputPath = path.join(DIST_DIR, '404.html');
     } else {
       const dirPath = path.join(DIST_DIR, route.substring(1));
       if (!fs.existsSync(dirPath)) {
