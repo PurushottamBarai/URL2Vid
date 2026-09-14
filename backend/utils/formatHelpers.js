@@ -1,10 +1,5 @@
-/**
- * Processes raw formats returned by yt-dlp to extract, map, and filter relevant media options.
- * yt-dlp often returns redundant DASH manifests, storyboards, or internal streams.
- * We filter for media streams, map them to a clean object, and sort by resolution.
- */
 export const processVideoFormats = (rawFormats) => {
-  if (!rawFormats || !Array.isArray(rawFormats)) {
+  if (!Array.isArray(rawFormats)) {
     return [];
   }
 
@@ -29,7 +24,6 @@ export const processVideoFormats = (rawFormats) => {
       return getRes(b.resolution) - getRes(a.resolution);
     });
 
-  // Remove duplicate resolutions to present a clean, concise list to the user
   formats = formats.filter((v, i, a) => a.findIndex(v2 => v2.resolution === v.resolution) === i);
 
   return formats;

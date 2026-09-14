@@ -1,12 +1,14 @@
+const SAFE_STATUS_CODES = new Set([400, 401, 403, 404, 409, 422, 429, 500, 502, 503]);
+
 const errorHandler = (err, req, res, next) => {
-  console.error('Unhandled Server Error:', err.message || err);
+  const statusCode = SAFE_STATUS_CODES.has(err.status) ? err.status : 500;
+  const message = err.message || 'An unexpected error occurred processing your request.';
+
+  process.stderr.write(`[error] ${req.method} ${req.path} → ${statusCode}: ${message}\n`);
 
   if (res.headersSent) {
     return next(err);
   }
-
-  const statusCode = err.status || 500;
-  const message = err.message || 'An unexpected error occurred processing your request.';
 
   res.status(statusCode).json({ error: message });
 };

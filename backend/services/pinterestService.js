@@ -1,47 +1,39 @@
-/**
- * Pinterest video extractor using OpenGraph metadata scraping.
- * Pinterest serves og:video in server-rendered HTML for public pins.
- * yt-dlp's Pinterest extractor frequently breaks due to site changes,
- * so we scrape the raw MP4 URL directly from the HTML head.
- */
-
 import fs from 'fs';
 import path from 'path';
 import https from 'https';
 import http from 'http';
 import crypto from 'crypto';
 
-const HEADERS = {
+const REQUEST_HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
   'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
   'Accept-Language': 'en-US,en;q=0.9',
-  'Accept-Encoding': 'gzip, deflate, br',
   'Cache-Control': 'no-cache',
 };
 
-const fetchWithRedirects = async (url, maxRedirects = 5) => {
-  let currentUrl = url;
-  for (let i = 0; i < maxRedirects; i++) {
-    const res = await fetch(currentUrl, {
-      headers: HEADERS,
-      redirect: 'follow',
-    });
-    if (res.ok) return res;
-    if (res.status >= 300 && res.status < 400) {
-      currentUrl = res.headers.get('location') || currentUrl;
-    } else {
-      throw new Error(`HTTP ${res.status} from Pinterest`);
-    }
+const DUMMY_FORMAT = {
+  format_id: 'best',
+  ext: 'mp4',
+  acodec: 'mp4a.40.2',
+  vcodec: 'avc1',
+  resolution: 'best',
+};
+
+const normalizePinterestUrl = (url) => {
+  const ideasMatch = url.match(/pinterest\.com\/ideas\/[^/]+\/(\d{10,})\/?/);
+  if (ideasMatch) {
+    return `https://www.pinterest.com/pin/${ideasMatch[1]}/`;
   }
-  throw new Error('Too many redirects from Pinterest');
+  return url;
 };
 
 export const fetchVideoInfo = async (url) => {
-  // Fetch with redirect following and a unique UA to avoid bot blocks
+  const fetchUrl = normalizePinterestUrl(url);
+
   let response;
   try {
-    response = await fetch(url, {
-      headers: HEADERS,
+    response = await fetch(fetchUrl, {
+      headers: REQUEST_HEADERS,
       redirect: 'follow',
       signal: AbortSignal.timeout(15000),
     });
@@ -55,17 +47,21 @@ export const fetchVideoInfo = async (url) => {
 
   const html = await response.text();
 
-  // Pinterest embeds video URL in og:video or og:video:url
   const videoUrlMatch =
     html.match(/<meta[^>]*property="og:video:secure_url"[^>]*content="([^"]+)"/) ||
     html.match(/<meta[^>]*property="og:video:url"[^>]*content="([^"]+)"/) ||
-    html.match(/<meta[^>]*property="og:video"[^>]*content="([^"]+)"/);
+    html.match(/<meta[^>]*property="og:video"[^>]*content="([^"]+)"/) ||
+    html.match(/"contentUrl"\s*:\s*"([^"]+\.(?:mp4|m3u8)[^"]*)"/) ||
+    html.match(/"videoUrl"\s*:\s*"([^"]+\.mp4[^"]*)"/);
 
   const titleMatch = html.match(/<meta[^>]*property="og:title"[^>]*content="([^"]+)"/);
   const thumbnailMatch = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]+)"/);
 
   if (!videoUrlMatch) {
-    throw new Error("Couldn't extract this Pinterest video. This pin may not contain a video, or it may be a board/category page rather than a specific video pin.");
+    throw new Error(
+      "Couldn't extract this Pinterest video. This pin may be an image pin (not a video), " +
+      "or a board/category page. Try using a direct video pin URL like pinterest.com/pin/ID/"
+    );
   }
 
   const videoUrl = videoUrlMatch[1].replace(/&amp;/g, '&');
@@ -76,48 +72,35 @@ export const fetchVideoInfo = async (url) => {
     title,
     thumbnail,
     duration: null,
-    formats: [
-      {
-        format_id: 'best',
-        ext: 'mp4',
-        url: videoUrl,
-        acodec: 'mp4a.40.2',
-        vcodec: 'avc1',
-        resolution: 'best',
-      },
-    ],
+    formats: [{ ...DUMMY_FORMAT, url: videoUrl }],
   };
 };
 
-export const downloadVideo = (url) => {
-  return new Promise(async (resolve, reject) => {
-    try {
-      const info = await fetchVideoInfo(url);
-      const rawMp4Url = info.formats[0].url;
+export const downloadVideo = async (url) => {
+  const info = await fetchVideoInfo(url);
+  const rawMp4Url = info.formats[0].url;
 
-      const tmpDir = path.resolve('tmp');
-      if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+  const tmpDir = path.resolve('tmp');
+  if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
 
-      const filePath = path.join(tmpDir, `pinterest_${crypto.randomUUID()}.mp4`);
-      const fileStream = fs.createWriteStream(filePath);
+  const filePath = path.join(tmpDir, `pinterest_${crypto.randomUUID()}.mp4`);
+  const fileStream = fs.createWriteStream(filePath);
 
-      const get = rawMp4Url.startsWith('https') ? https.get : http.get;
-      get(rawMp4Url, { headers: HEADERS }, (res) => {
-        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-          const redirectGet = res.headers.location.startsWith('https') ? https.get : http.get;
-          redirectGet(res.headers.location, { headers: HEADERS }, (res2) => {
-            res2.pipe(fileStream);
-            fileStream.on('finish', () => resolve(filePath));
-            fileStream.on('error', reject);
-          }).on('error', reject);
-        } else {
-          res.pipe(fileStream);
+  return new Promise((resolve, reject) => {
+    const get = rawMp4Url.startsWith('https') ? https.get : http.get;
+    get(rawMp4Url, { headers: REQUEST_HEADERS }, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        const redirectGet = res.headers.location.startsWith('https') ? https.get : http.get;
+        redirectGet(res.headers.location, { headers: REQUEST_HEADERS }, (res2) => {
+          res2.pipe(fileStream);
           fileStream.on('finish', () => resolve(filePath));
           fileStream.on('error', reject);
-        }
-      }).on('error', reject);
-    } catch (err) {
-      reject(err);
-    }
+        }).on('error', reject);
+      } else {
+        res.pipe(fileStream);
+        fileStream.on('finish', () => resolve(filePath));
+        fileStream.on('error', reject);
+      }
+    }).on('error', reject);
   });
 };

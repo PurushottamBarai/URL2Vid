@@ -1,6 +1,9 @@
 node_modules
+.env
 
 tmp/
+scratch_*.html
+
 *.mp4
 *.temp.mp4
 *.ts

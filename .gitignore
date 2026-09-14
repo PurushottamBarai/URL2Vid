@@ -2,6 +2,8 @@
 node_modules/
 npm-debug.log
 yarn-error.log
+yarn-debug.log
+pnpm-debug.log
 
 # Environment variables
 .env
@@ -9,17 +11,21 @@ yarn-error.log
 .env.development.local
 .env.test.local
 .env.production.local
+*.env
 
 # Build output
 dist/
 build/
 .next/
 out/
+coverage/
 
 # Temporary files and logs
 tmp/
 logs/
 *.log
+.cache/
+.npm/
 
 # OS generated files
 .DS_Store
@@ -38,3 +44,9 @@ Thumbs.db
 
 # Project specific
 backend/tmp/
+backend/scratch_*.html
+*.mp4
+*.ts
+
+# Test scripts
+test_urls.mjs

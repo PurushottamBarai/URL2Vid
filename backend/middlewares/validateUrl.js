@@ -1,4 +1,4 @@
-import { checkUrlStatus } from '../../frontend/src/utils/urlValidation.js';
+import { checkUrlStatus } from '../utils/urlValidation.js';
 
 const validateUrl = (req, res, next) => {
   const url = req.body?.url || req.query?.url;
