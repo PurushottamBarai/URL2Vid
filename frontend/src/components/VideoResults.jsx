@@ -19,7 +19,7 @@ const VideoResults = ({ data, originalUrl, initialFormat }) => {
    */
   const handleDownload = () => {
     // Construct the backend download endpoint URL
-    const url = new URL(`${API_BASE_URL}/download`);
+    const url = new URL(`${API_BASE_URL}/download`, window.location.origin);
     url.searchParams.append('url', originalUrl);
     
     // Add specific parameters based on what the user selected in the UI dropdown
