@@ -1,7 +1,7 @@
 const urlPatterns = [
   { name: 'YouTube', regex: /^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)/ },
   { name: 'Instagram', regex: /^(?:https?:\/\/)?(?:www\.)?instagram\.com\/(?:p|reel|reels)\// },
-  { name: 'Facebook', regex: /^(?:https?:\/\/)?(?:www\.)?(?:facebook\.com\/(?:.*\/videos\/|reel\/|reels\/)|fb\.watch\/)/ },
+  { name: 'Facebook', regex: /^(?:https?:\/\/)?(?:www\.)?(?:facebook\.com\/(?:.*\/videos\/|reel\/|reels\/|watch)|fb\.watch\/)/ },
   { name: 'X', regex: /^(?:https?:\/\/)?(?:www\.)?(?:twitter\.com|x\.com)\/.*\/status\// },
   { name: 'TikTok', regex: /^(?:https?:\/\/)?(?:www\.)?(?:tiktok\.com\/@.*\/video\/|vm\.tiktok\.com\/)/ },
   { name: 'Vimeo', regex: /^(?:https?:\/\/)?(?:www\.)?vimeo\.com\/\d+/ },
@@ -9,9 +9,9 @@ const urlPatterns = [
   { name: 'Twitch', regex: /^(?:https?:\/\/)?(?:clips\.twitch\.tv\/|(?:www\.)?twitch\.tv\/.*\/clip\/)/ },
   { name: 'Reddit', regex: /^(?:https?:\/\/)?(?:www\.)?reddit\.com\/r\/[^\/]+\/(?:comments|s)\// },
   { name: 'LinkedIn', regex: /^(?:https?:\/\/)?(?:(?:www\.)?linkedin\.com\/(?:posts|feed\/update)\/|lnkd\.in\/)/ },
-  { name: 'Threads', regex: /^(?:https?:\/\/)?(?:www\.)?threads\.net\/.*\/post\// },
+  { name: 'Threads', regex: /^(?:https?:\/\/)?(?:www\.)?threads\.(?:com|net)\/.*\/post\// },
   { name: 'Snapchat', regex: /^(?:https?:\/\/)?(?:www\.)?snapchat\.com\/(?:@[^\/]+\/)?spotlight\// },
-  { name: 'Pinterest', regex: /^(?:https?:\/\/)?(?:(?:www\.|[\w-]+\.)?pinterest\.com\/pin\/|pin\.it\/)/ },
+  { name: 'Pinterest', regex: /^(?:https?:\/\/)?(?:(?:www\.|[\w-]+\.)?pinterest\.com\/(?:pin\/|ideas\/|[^\/]+\/[^\/]+\/)|pin\.it\/)/ },
   { name: 'Rumble', regex: /^(?:https?:\/\/)?(?:www\.)?rumble\.com\/.*\.html/ }
 ];
 
