@@ -52,6 +52,8 @@ const Hero = React.memo(({ onFetch, isLoading, customTitle, customSubtitle }) =>
                 required
                 className="input-field"
                 aria-label="Video URL input"
+                onFocus={(e) => e.target.select()}
+                onClick={(e) => e.target.select()}
               />
               {error && <p className="text-error text-sm font-medium mt-1">{error}</p>}
             </div>

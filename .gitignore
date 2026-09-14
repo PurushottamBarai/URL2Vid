@@ -44,9 +44,14 @@ Thumbs.db
 
 # Project specific
 backend/tmp/
-backend/scratch_*.html
+backend/temp/
+backend/cookies.txt
+frontend/.eslintcache
 *.mp4
 *.ts
+scratch_*.html
+scratch_*.js
 
 # Test scripts
 test_urls.mjs
+test_*.js

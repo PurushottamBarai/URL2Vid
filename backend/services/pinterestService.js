@@ -3,21 +3,7 @@ import path from 'path';
 import https from 'https';
 import http from 'http';
 import crypto from 'crypto';
-
-const REQUEST_HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-  'Accept-Language': 'en-US,en;q=0.9',
-  'Cache-Control': 'no-cache',
-};
-
-const DUMMY_FORMAT = {
-  format_id: 'best',
-  ext: 'mp4',
-  acodec: 'mp4a.40.2',
-  vcodec: 'avc1',
-  resolution: 'best',
-};
+import { REQUEST_HEADERS, DUMMY_FORMAT } from '../utils/constants.js';
 
 const normalizePinterestUrl = (url) => {
   const ideasMatch = url.match(/pinterest\.com\/ideas\/[^/]+\/(\d{10,})\/?/);
@@ -55,7 +41,11 @@ export const fetchVideoInfo = async (url) => {
     html.match(/"videoUrl"\s*:\s*"([^"]+\.mp4[^"]*)"/);
 
   const titleMatch = html.match(/<meta[^>]*property="og:title"[^>]*content="([^"]+)"/);
-  const thumbnailMatch = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]+)"/);
+  const thumbnailMatch = 
+    html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]+)"/) ||
+    html.match(/<meta[^>]*name="og:image"[^>]*content="([^"]+)"/) ||
+    html.match(/"thumbnailUrl"\s*:\s*"([^"]+)"/) ||
+    html.match(/"image"\s*:\s*"([^"]+)"/);
 
   if (!videoUrlMatch) {
     throw new Error(
@@ -80,27 +70,17 @@ export const downloadVideo = async (url) => {
   const info = await fetchVideoInfo(url);
   const rawMp4Url = info.formats[0].url;
 
-  const tmpDir = path.resolve('tmp');
-  if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
-
-  const filePath = path.join(tmpDir, `pinterest_${crypto.randomUUID()}.mp4`);
-  const fileStream = fs.createWriteStream(filePath);
-
   return new Promise((resolve, reject) => {
     const get = rawMp4Url.startsWith('https') ? https.get : http.get;
-    get(rawMp4Url, { headers: REQUEST_HEADERS }, (res) => {
+    const req = get(rawMp4Url, { headers: REQUEST_HEADERS, timeout: 30000 }, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         const redirectGet = res.headers.location.startsWith('https') ? https.get : http.get;
-        redirectGet(res.headers.location, { headers: REQUEST_HEADERS }, (res2) => {
-          res2.pipe(fileStream);
-          fileStream.on('finish', () => resolve(filePath));
-          fileStream.on('error', reject);
-        }).on('error', reject);
+        const req2 = redirectGet(res.headers.location, { headers: REQUEST_HEADERS, timeout: 30000 }, (res2) => {
+          resolve(res2);
+        }).on('error', reject).on('timeout', () => req2.destroy(new Error('Timeout')));
       } else {
-        res.pipe(fileStream);
-        fileStream.on('finish', () => resolve(filePath));
-        fileStream.on('error', reject);
+        resolve(res);
       }
-    }).on('error', reject);
+    }).on('error', reject).on('timeout', () => req.destroy(new Error('Timeout')));
   });
 };

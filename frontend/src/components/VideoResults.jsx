@@ -47,6 +47,7 @@ const VideoResults = React.memo(({ data, originalUrl, initialFormat }) => {
             <img 
               src={data.thumbnail} 
               alt={data.title} 
+              loading="lazy"
               className="absolute inset-0 w-full h-full object-cover" 
             />
           </div>
@@ -70,8 +71,16 @@ const VideoResults = React.memo(({ data, originalUrl, initialFormat }) => {
                 className="w-full appearance-none bg-surface border border-border text-text-primary rounded-md px-4 py-3 pr-10 focus:outline-none focus:border-accent font-mono text-sm cursor-pointer shadow-none"
                 aria-label="Select format"
               >
-                <option value="best" className="bg-surface">Best Video (MP4)</option>
-                {data.formats && data.formats.map((fmt) => {
+                <option value={initialFormat || 'best'} className="bg-surface">
+                  {initialFormat === 'audio' 
+                    ? 'Best Audio (MP3)' 
+                    : initialFormat === 'mute' 
+                      ? 'Best Video (No Sound)' 
+                      : 'Best Video (MP4)'}
+                </option>
+                {data.formats && data.formats.filter(fmt => 
+                  initialFormat === 'audio' ? !fmt.hasVideo : fmt.hasVideo
+                ).map((fmt) => {
                   const uniqueKey = fmt.formatId || fmt.url || Math.random().toString();
                   return (
                     <option key={uniqueKey} value={fmt.formatId} className="bg-surface">
@@ -85,7 +94,7 @@ const VideoResults = React.memo(({ data, originalUrl, initialFormat }) => {
 
             <button
               onClick={handleDownload}
-              className="w-full py-4 text-lg rounded-md font-bold transition-colors border border-accent text-accent hover:bg-accent/10 focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-base outline-none active:scale-[0.98]"
+              className="w-full py-4 text-lg rounded-md font-bold transition-colors border border-accent text-accent hover:bg-accent/10 focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-base outline-none active:scale-[0.98] cursor-pointer"
             >
               Download file
             </button>

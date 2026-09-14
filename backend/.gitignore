@@ -1,16 +1,19 @@
-node_modules
+node_modules/
 .env
 
+# Temp files
 tmp/
+temp/
+cookies.txt
 scratch_*.html
+scratch_*.js
 
+# Download files
 *.mp4
 *.temp.mp4
 *.ts
 
-.env
 *.log
-
 .DS_Store
-.vscode
-.idea
+.vscode/
+.idea/

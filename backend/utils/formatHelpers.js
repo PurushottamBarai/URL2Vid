@@ -13,7 +13,6 @@ export const processVideoFormats = (rawFormats) => {
       hasVideo: f.vcodec !== 'none',
       hasAudio: f.acodec !== 'none',
     }))
-    .filter(f => f.hasVideo)
     .sort((a, b) => {
       const getRes = (resStr) => {
         if (!resStr || resStr === 'Audio Only') return 0;
