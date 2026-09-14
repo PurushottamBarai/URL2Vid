@@ -1,9 +1,11 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import NotFound from './pages/NotFound';
+import PlatformLanding from './pages/PlatformLanding';
+import { platformsData } from './data/platforms';
 
 const App = () => {
   return (
@@ -13,6 +15,19 @@ const App = () => {
         
         <Routes>
           <Route path="/" element={<Home />} />
+          
+          {/* Dynamic Platform Routes */}
+          {platformsData.map((platform) => (
+            <Route 
+              key={platform.path} 
+              path={platform.path} 
+              element={<PlatformLanding {...platform} />} 
+            />
+          ))}
+          
+          {/* Alias/Redirect for X */}
+          <Route path="/x-video-downloader" element={<Navigate to="/twitter-video-downloader" replace />} />
+          
           <Route path="*" element={<NotFound />} />
         </Routes>
 

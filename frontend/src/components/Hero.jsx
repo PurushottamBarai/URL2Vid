@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { Download } from 'lucide-react';
 import { checkUrlStatus } from '../utils/urlValidation.js';
 
-const Hero = React.memo(({ onFetch, isLoading }) => {
+const Hero = React.memo(({ onFetch, isLoading, customTitle, customSubtitle }) => {
   const [url, setUrl] = useState('');
   const [error, setError] = useState('');
   const [format, setFormat] = useState('best');
@@ -27,10 +27,10 @@ const Hero = React.memo(({ onFetch, isLoading }) => {
     <div className="flex flex-col items-center w-full animate-slide-up">
       <div className="flex flex-col items-center text-center mb-8">
         <h1 className="text-4xl md:text-5xl font-bold text-text-primary mb-4 tracking-tight">
-          Download Video From URL
+          {customTitle || 'Download Video From URL'}
         </h1>
         <p className="text-text-secondary max-w-2xl text-[15px]">
-          Free online video downloader — paste any URL from your favorite platforms.
+          {customSubtitle || 'Free online video downloader — paste any URL from your favorite platforms.'}
         </p>
       </div>
       
@@ -96,6 +96,8 @@ Hero.displayName = 'Hero';
 Hero.propTypes = {
   onFetch: PropTypes.func.isRequired,
   isLoading: PropTypes.bool.isRequired,
+  customTitle: PropTypes.string,
+  customSubtitle: PropTypes.string,
 };
 
 export default Hero;
