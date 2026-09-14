@@ -7,12 +7,26 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const fetchVideoInfo = async (url) => {
-  return await ytdlp(url, {
+  const isFacebook = url.includes('facebook.com') || url.includes('fb.watch');
+
+  const flags = {
     dumpJson: true,
     noWarnings: true,
     noCheckCertificate: true,
-  });
+  };
+
+  if (isFacebook) {
+    // Facebook requires a referer and accepts cookies from the browser session
+    // Using --add-header to set referer helps bypass the "video unavailable" wall
+    flags.addHeader = [
+      'referer:https://www.facebook.com/',
+      'accept-language:en-US,en;q=0.9',
+    ];
+  }
+
+  return await ytdlp(url, flags);
 };
+
 
 const downloadVideo = async (url, formatId, type) => {
   let formatArg = formatId ? `${formatId}+bestaudio/best` : 'best';

@@ -1,8 +1,19 @@
 import * as ytdlpService from '../services/ytdlpService.js';
 import * as snapchatService from '../services/snapchatService.js';
+import * as pinterestService from '../services/pinterestService.js';
+import * as threadsService from '../services/threadsService.js';
+import * as linkedinService from '../services/linkedinService.js';
 import * as ffmpegService from '../services/ffmpegService.js';
 
 import fs from 'fs';
+
+const detectPlatform = (url) => {
+  if (url.includes('snapchat.com')) return 'snapchat';
+  if (url.includes('pinterest.com') || url.includes('pin.it')) return 'pinterest';
+  if (url.includes('threads.com') || url.includes('threads.net')) return 'threads';
+  if (url.includes('linkedin.com') || url.includes('lnkd.in')) return 'linkedin';
+  return 'ytdlp';
+};
 
 const downloadMedia = async (req, res, next) => {
   const { url, formatId, type } = req.query;
@@ -21,19 +32,32 @@ const downloadMedia = async (req, res, next) => {
       ffmpegService.convertToMp3(ytDlpProcess.stdout, res);
 
     } else {
+      const platform = detectPlatform(url);
       let filePath;
-      if (url.includes('snapchat.com')) {
-        filePath = await snapchatService.downloadVideo(url, type);
-      } else {
-        filePath = await ytdlpService.downloadVideo(url, formatId, type);
+
+      switch (platform) {
+        case 'snapchat':
+          filePath = await snapchatService.downloadVideo(url, type);
+          break;
+        case 'pinterest':
+          filePath = await pinterestService.downloadVideo(url);
+          break;
+        case 'threads':
+          filePath = await threadsService.downloadVideo(url);
+          break;
+        case 'linkedin':
+          filePath = await linkedinService.downloadVideo(url);
+          break;
+        default:
+          filePath = await ytdlpService.downloadVideo(url, formatId, type);
       }
-      
+
       res.download(filePath, 'video.mp4', (err) => {
         if (err) {
           console.error('Download stream error:', err);
         }
-        
-        // Ensure file exists before attempting to delete it (e.g. if yt-dlp failed early)
+
+        // Ensure file exists before attempting to delete it
         if (fs.existsSync(filePath)) {
           fs.unlinkSync(filePath);
         }
