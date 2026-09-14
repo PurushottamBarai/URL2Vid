@@ -4,6 +4,8 @@ import dotenv from 'dotenv';
 import helmet from 'helmet';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { exec } from 'child_process';
+import { createRequire } from 'module';
 
 import rateLimiter from './middlewares/rateLimiter.js';
 import errorHandler from './middlewares/errorHandler.js';
@@ -12,6 +14,23 @@ import infoRoutes from './routes/infoRoutes.js';
 import downloadRoutes from './routes/downloadRoutes.js';
 
 dotenv.config();
+
+// Auto-update yt-dlp binary at startup so it stays current on Render
+try {
+  const require = createRequire(import.meta.url);
+  const { YOUTUBE_DL_PATH } = require('yt-dlp-exec/src/constants');
+  if (YOUTUBE_DL_PATH) {
+    exec(`"${YOUTUBE_DL_PATH}" -U`, (err, stdout, stderr) => {
+      if (err) {
+        console.warn('[yt-dlp] Self-update failed:', stderr?.trim() || err.message);
+      } else {
+        console.log('[yt-dlp]', stdout?.trim() || 'Already up to date');
+      }
+    });
+  }
+} catch (e) {
+  console.warn('[yt-dlp] Could not auto-update:', e.message);
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
