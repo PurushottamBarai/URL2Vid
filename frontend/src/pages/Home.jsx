@@ -5,6 +5,10 @@ import Hero from '../components/Hero';
 import VideoResults from '../components/VideoResults';
 import ErrorBanner from '../components/ErrorBanner';
 import LoadingSkeleton from '../components/LoadingSkeleton';
+import HowItWorks from '../components/HowItWorks';
+import WhyChooseUs from '../components/WhyChooseUs';
+import SupportedPlatforms from '../components/SupportedPlatforms';
+import FAQ from '../components/FAQ';
 
 const Home = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -45,16 +49,20 @@ const Home = () => {
   }, []);
 
   return (
-    <main className="flex-1 flex flex-col items-center justify-start pt-8 md:pt-14 pb-24 px-4 w-full max-w-2xl mx-auto">
-      <Hero onFetch={handleFetchInfo} isLoading={isLoading} />
-      
-      <ErrorBanner message={error} />
+    <main className="flex-1 flex flex-col items-center justify-start pt-8 md:pt-14 px-4 w-full mx-auto">
+      <div className="w-full max-w-2xl mx-auto">
+        <Hero onFetch={handleFetchInfo} isLoading={isLoading} />
+        <ErrorBanner message={error} />
+        {isLoading && <LoadingSkeleton />}
+        {!isLoading && videoData && (
+          <VideoResults data={videoData} originalUrl={lastUrl} initialFormat={initialFormat} />
+        )}
+      </div>
 
-      {isLoading && <LoadingSkeleton />}
-
-      {!isLoading && videoData && (
-        <VideoResults data={videoData} originalUrl={lastUrl} initialFormat={initialFormat} />
-      )}
+      <HowItWorks />
+      <WhyChooseUs />
+      <SupportedPlatforms />
+      <FAQ />
     </main>
   );
 };
