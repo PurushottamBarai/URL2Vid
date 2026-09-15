@@ -87,7 +87,7 @@ const fetchVideoInfo = async (url) => {
     noCheckCertificate: true,
     socketTimeout: 20,
     retries: 1,
-    extractorArgs: 'youtube:player_client=default',
+    extractorArgs: 'youtube:player_client=mweb,default',
   });
 
   if (isFacebookUrl(targetUrl)) {
@@ -129,7 +129,7 @@ const downloadVideo = async (url, formatId, type) => {
     noWarnings: true,
     socketTimeout: 30,
     retries: 1,
-    extractorArgs: 'youtube:player_client=default',
+    extractorArgs: 'youtube:player_client=mweb,default',
   });
 
   try {
@@ -152,7 +152,7 @@ const getAudioStream = (url) => {
     noWarnings: true,
     socketTimeout: 30,
     retries: 1,
-    extractorArgs: 'youtube:player_client=default',
+    extractorArgs: 'youtube:player_client=mweb,default',
   });
 
   const proc = ytdlp.exec(targetUrl, flags, { stdio: ['ignore', 'pipe', 'pipe'] });
