@@ -1,6 +1,7 @@
 import ytdlp from 'yt-dlp-exec';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 
@@ -70,14 +71,30 @@ const getProxyFlags = () => {
   };
 };
 
-const applyCommonFlags = (baseFlags) => {
-  const flags = { ...baseFlags };
-  const cookiesPath = path.join(__dirname, '..', 'cookies.txt');
-  if (fs.existsSync(cookiesPath)) {
-    flags.cookies = cookiesPath;
+const getCookiesFlags = () => {
+  const localCookiesPath = path.join(__dirname, '..', 'cookies.txt');
+  if (fs.existsSync(localCookiesPath)) {
+    return { cookies: localCookiesPath };
   }
-  const proxyFlags = getProxyFlags();
-  return { ...flags, ...proxyFlags };
+  if (process.env.YTDLP_COOKIES && process.env.YTDLP_COOKIES.trim()) {
+    const tmpCookiesPath = path.join(os.tmpdir(), 'render_cookies.txt');
+    try {
+      fs.writeFileSync(tmpCookiesPath, process.env.YTDLP_COOKIES.trim() + '\n');
+      return { cookies: tmpCookiesPath };
+    } catch (err) {
+      process.stderr.write(`[cookies] Failed to write YTDLP_COOKIES to tmp: ${err.message}\n`);
+    }
+  }
+  return {};
+};
+
+const applyCommonFlags = (baseFlags) => {
+  const flags = {
+    ...baseFlags,
+    ...getCookiesFlags(),
+    ...getProxyFlags(),
+  };
+  return flags;
 };
 
 const formatAndLogStderr = (fnName, url, error) => {
