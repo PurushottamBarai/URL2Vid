@@ -150,13 +150,21 @@ const getCookiesFlags = () => {
   return {};
 };
 
-const applyCommonFlags = (baseFlags) => {
-  const flags = {
-    extractorArgs: "youtube:player_client=ios,mweb,web",
-    ...baseFlags,
-    ...getCookiesFlags(),
-    ...getProxyFlags(),
-  };
+const isYouTubeUrl = (url) => {
+  if (!url || typeof url !== "string") return false;
+  return url.includes("youtube.com") || url.includes("youtu.be");
+};
+
+const applyCommonFlags = (baseFlags, targetUrl = "") => {
+  const flags = { ...baseFlags };
+
+  if (isYouTubeUrl(targetUrl)) {
+    flags.extractorArgs = "youtube:player_client=mweb,ios,web,android";
+  } else {
+    Object.assign(flags, getCookiesFlags());
+  }
+
+  Object.assign(flags, getProxyFlags());
   return flags;
 };
 
@@ -172,13 +180,16 @@ const formatAndLogStderr = (fnName, url, error) => {
 
 const fetchVideoInfo = async (url) => {
   const targetUrl = await resolveRedditShortLink(url);
-  const flags = applyCommonFlags({
-    dumpJson: true,
-    noWarnings: true,
-    noCheckCertificate: true,
-    socketTimeout: 20,
-    retries: 1,
-  });
+  const flags = applyCommonFlags(
+    {
+      dumpJson: true,
+      noWarnings: true,
+      noCheckCertificate: true,
+      socketTimeout: 20,
+      retries: 1,
+    },
+    targetUrl,
+  );
 
   if (isFacebookUrl(targetUrl)) {
     flags.addHeader = [
@@ -213,14 +224,17 @@ const downloadVideo = async (url, formatId, type) => {
 
   const filePath = path.join(tempDir, fileName);
 
-  const flags = applyCommonFlags({
-    output: filePath,
-    format: formatArg,
-    mergeOutputFormat: "mp4",
-    noWarnings: true,
-    socketTimeout: 30,
-    retries: 1,
-  });
+  const flags = applyCommonFlags(
+    {
+      output: filePath,
+      format: formatArg,
+      mergeOutputFormat: "mp4",
+      noWarnings: true,
+      socketTimeout: 30,
+      retries: 1,
+    },
+    targetUrl,
+  );
 
   try {
     const ytdlpExec = getYtdlpInstance();
@@ -237,13 +251,16 @@ const downloadVideo = async (url, formatId, type) => {
 
 const getAudioStream = (url) => {
   const targetUrl = resolveRedditShortLinkSync(url);
-  const flags = applyCommonFlags({
-    output: "-",
-    format: "bestaudio",
-    noWarnings: true,
-    socketTimeout: 30,
-    retries: 1,
-  });
+  const flags = applyCommonFlags(
+    {
+      output: "-",
+      format: "bestaudio",
+      noWarnings: true,
+      socketTimeout: 30,
+      retries: 1,
+    },
+    targetUrl,
+  );
 
   const ytdlpExec = getYtdlpInstance();
   const proc = ytdlpExec.exec(targetUrl, flags, {

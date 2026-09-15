@@ -22,15 +22,25 @@ const updateYtDlpBinary = async () => {
     const isWin = process.platform === 'win32';
     const assetName = isWin ? 'yt-dlp.exe' : 'yt-dlp';
     const targetPath = path.join(os.tmpdir(), assetName);
-    const downloadUrl = `https://github.com/yt-dlp/yt-dlp-nightly-builds/releases/latest/download/${assetName}`;
+    const stableUrl = `https://github.com/yt-dlp/yt-dlp/releases/latest/download/${assetName}`;
+    const nightlyUrl = `https://github.com/yt-dlp/yt-dlp-nightly-builds/releases/latest/download/${assetName}`;
 
-    process.stdout.write(`[yt-dlp] Downloading latest nightly binary from GitHub releases to ${targetPath}...\n`);
+    process.stdout.write(`[yt-dlp] Downloading latest binary to ${targetPath}...\n`);
 
-    const binaryRes = await fetch(downloadUrl, {
+    let binaryRes = await fetch(stableUrl, {
       headers: { 'User-Agent': 'URL2Vid/1.0' },
       redirect: 'follow',
       signal: AbortSignal.timeout(60000),
     });
+
+    if (!binaryRes.ok) {
+      process.stdout.write(`[yt-dlp] Stable build download returned HTTP ${binaryRes.status}, falling back to nightly...\n`);
+      binaryRes = await fetch(nightlyUrl, {
+        headers: { 'User-Agent': 'URL2Vid/1.0' },
+        redirect: 'follow',
+        signal: AbortSignal.timeout(60000),
+      });
+    }
 
     if (!binaryRes.ok) throw new Error(`Binary download failed: HTTP ${binaryRes.status}`);
 
@@ -39,9 +49,9 @@ const updateYtDlpBinary = async () => {
     fs.chmodSync(targetPath, 0o755);
 
     process.env.YTDLP_CUSTOM_BINARY = targetPath;
-    process.stdout.write(`[yt-dlp] Updated nightly binary at ${targetPath} (${buffer.byteLength} bytes)\n`);
+    process.stdout.write(`[yt-dlp] Updated binary at ${targetPath} (${buffer.byteLength} bytes)\n`);
   } catch (err) {
-    process.stderr.write(`[yt-dlp] Nightly update failed (proceeding with default binary): ${err.message}\n`);
+    process.stderr.write(`[yt-dlp] Binary update failed (proceeding with default binary): ${err.message}\n`);
   }
 };
 
