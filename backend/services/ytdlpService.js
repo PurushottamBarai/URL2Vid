@@ -12,6 +12,13 @@ const REDDIT_SHORT_LINK_REGEX = /^(?:https?:\/\/)?(?:www\.|old\.)?reddit\.com\/r
 
 const isFacebookUrl = (url) => FACEBOOK_DOMAINS.some(d => url.includes(d));
 
+const getYtdlpInstance = () => {
+  if (process.env.YTDLP_CUSTOM_BINARY && fs.existsSync(process.env.YTDLP_CUSTOM_BINARY)) {
+    return ytdlp.create(process.env.YTDLP_CUSTOM_BINARY);
+  }
+  return ytdlp;
+};
+
 const resolveRedditShortLink = async (urlString) => {
   if (!urlString || typeof urlString !== 'string' || !REDDIT_SHORT_LINK_REGEX.test(urlString)) {
     return urlString;
@@ -98,7 +105,8 @@ const fetchVideoInfo = async (url) => {
   }
 
   try {
-    return await ytdlp(targetUrl, flags);
+    const ytdlpExec = getYtdlpInstance();
+    return await ytdlpExec(targetUrl, flags);
   } catch (error) {
     formatAndLogStderr('fetchVideoInfo', targetUrl, error);
     throw error;
@@ -133,7 +141,8 @@ const downloadVideo = async (url, formatId, type) => {
   });
 
   try {
-    await ytdlp(targetUrl, flags);
+    const ytdlpExec = getYtdlpInstance();
+    await ytdlpExec(targetUrl, flags);
   } catch (error) {
     formatAndLogStderr('downloadVideo', targetUrl, error);
     throw error;
@@ -155,7 +164,8 @@ const getAudioStream = (url) => {
     extractorArgs: 'youtube:player_client=ios,android,mweb,web',
   });
 
-  const proc = ytdlp.exec(targetUrl, flags, { stdio: ['ignore', 'pipe', 'pipe'] });
+  const ytdlpExec = getYtdlpInstance();
+  const proc = ytdlpExec.exec(targetUrl, flags, { stdio: ['ignore', 'pipe', 'pipe'] });
   
   let stderrBuffer = '';
   if (proc.stderr) {

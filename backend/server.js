@@ -4,8 +4,8 @@ import dotenv from 'dotenv';
 import helmet from 'helmet';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 import { fileURLToPath } from 'url';
-import { createRequire } from 'module';
 
 import rateLimiter from './middlewares/rateLimiter.js';
 import errorHandler from './middlewares/errorHandler.js';
@@ -19,16 +19,9 @@ const __dirname = path.dirname(__filename);
 
 const updateYtDlpBinary = async () => {
   try {
-    const require = createRequire(import.meta.url);
-    const { YOUTUBE_DL_PATH, YOUTUBE_DL_PLATFORM } = require('yt-dlp-exec/src/constants');
-
-    if (!YOUTUBE_DL_PATH) {
-      process.stderr.write('[yt-dlp] Binary path not found, skipping update\n');
-      return;
-    }
-
-    const isWin = YOUTUBE_DL_PLATFORM === 'win32';
+    const isWin = process.platform === 'win32';
     const assetName = isWin ? 'yt-dlp.exe' : 'yt-dlp';
+    const targetPath = path.join(os.tmpdir(), assetName);
 
     process.stdout.write(`[yt-dlp] Fetching latest nightly release info from GitHub for ${assetName}...\n`);
     const releaseRes = await fetch('https://api.github.com/repos/yt-dlp/yt-dlp-nightly-builds/releases/latest', {
@@ -43,7 +36,7 @@ const updateYtDlpBinary = async () => {
 
     if (!asset) throw new Error(`${assetName} not found in release assets`);
 
-    process.stdout.write(`[yt-dlp] Downloading ${release.tag_name}...\n`);
+    process.stdout.write(`[yt-dlp] Downloading ${release.tag_name} to ${targetPath}...\n`);
 
     const binaryRes = await fetch(asset.browser_download_url, {
       headers: { 'User-Agent': 'URL2Vid/1.0' },
@@ -53,12 +46,13 @@ const updateYtDlpBinary = async () => {
     if (!binaryRes.ok) throw new Error(`Binary download failed: HTTP ${binaryRes.status}`);
 
     const buffer = await binaryRes.arrayBuffer();
-    fs.writeFileSync(YOUTUBE_DL_PATH, Buffer.from(buffer));
-    fs.chmodSync(YOUTUBE_DL_PATH, 0o755);
+    fs.writeFileSync(targetPath, Buffer.from(buffer));
+    fs.chmodSync(targetPath, 0o755);
 
-    process.stdout.write(`[yt-dlp] Updated to ${release.tag_name}\n`);
+    process.env.YTDLP_CUSTOM_BINARY = targetPath;
+    process.stdout.write(`[yt-dlp] Updated to ${release.tag_name} at ${targetPath}\n`);
   } catch (err) {
-    process.stderr.write(`[yt-dlp] Update failed (proceeding with existing binary): ${err.message}\n`);
+    process.stderr.write(`[yt-dlp] Nightly update failed (proceeding with default binary): ${err.message}\n`);
   }
 };
 
