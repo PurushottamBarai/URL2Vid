@@ -72,19 +72,33 @@ const getProxyFlags = () => {
 };
 
 const getCookiesFlags = () => {
-  const localCookiesPath = path.join(__dirname, '..', 'cookies.txt');
-  if (fs.existsSync(localCookiesPath)) {
-    return { cookies: localCookiesPath };
+  const possiblePaths = [
+    '/etc/secrets/cookies.txt',
+    path.join(__dirname, '..', 'cookies.txt'),
+    path.join(__dirname, '..', '..', 'cookies.txt'),
+    path.join(process.cwd(), 'cookies.txt'),
+    path.join(process.cwd(), 'backend', 'cookies.txt'),
+  ];
+
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) {
+      process.stdout.write(`[cookies] Found cookies file at: ${p}\n`);
+      return { cookies: p };
+    }
   }
+
   if (process.env.YTDLP_COOKIES && process.env.YTDLP_COOKIES.trim()) {
     const tmpCookiesPath = path.join(os.tmpdir(), 'render_cookies.txt');
     try {
       fs.writeFileSync(tmpCookiesPath, process.env.YTDLP_COOKIES.trim() + '\n');
+      process.stdout.write(`[cookies] Found YTDLP_COOKIES env var, written to: ${tmpCookiesPath}\n`);
       return { cookies: tmpCookiesPath };
     } catch (err) {
       process.stderr.write(`[cookies] Failed to write YTDLP_COOKIES to tmp: ${err.message}\n`);
     }
   }
+
+  process.stderr.write(`[cookies] No cookies file found in search paths or YTDLP_COOKIES env var\n`);
   return {};
 };
 
