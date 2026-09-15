@@ -3,7 +3,6 @@ import * as snapchatService from '../services/snapchatService.js';
 import * as pinterestService from '../services/pinterestService.js';
 import * as threadsService from '../services/threadsService.js';
 import * as linkedinService from '../services/linkedinService.js';
-import rapidapiService from '../services/rapidapiService.js';
 import { processVideoFormats } from '../utils/formatHelpers.js';
 import { detectPlatform } from '../utils/platformDetector.js';
 
@@ -40,24 +39,9 @@ const getInfo = async (req, res, next) => {
         break;
 
       case 'youtube':
-        if (process.env.RAPIDAPI_KEY) {
-          try {
-            info = await rapidapiService.fetchVideoInfo(url);
-          } catch (err) {
-            console.warn(`[info] RapidAPI failed for YouTube (${err.message}), falling back to yt-dlp...`);
-            info = await ytdlpService.fetchVideoInfo(url);
-          }
-        } else {
-          info = await ytdlpService.fetchVideoInfo(url);
-        }
-        break;
-
       default:
-        if (platform === 'ytdlp' && url.includes('youtube.com') && process.env.RAPIDAPI_KEY) {
-           info = await rapidapiService.fetchVideoInfo(url);
-        } else {
-           info = await ytdlpService.fetchVideoInfo(url);
-        }
+        info = await ytdlpService.fetchVideoInfo(url);
+        break;
     }
 
     const availableFormats = processVideoFormats(info.formats);

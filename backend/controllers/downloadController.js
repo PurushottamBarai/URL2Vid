@@ -4,7 +4,6 @@ import * as pinterestService from '../services/pinterestService.js';
 import * as threadsService from '../services/threadsService.js';
 import * as linkedinService from '../services/linkedinService.js';
 import * as ffmpegService from '../services/ffmpegService.js';
-import rapidapiService from '../services/rapidapiService.js';
 import { detectPlatform } from '../utils/platformDetector.js';
 
 import fs from 'fs';
@@ -20,9 +19,8 @@ const downloadMedia = async (req, res, next) => {
 
   try {
     const platform = detectPlatform(url);
-    const useRapidAPI = (platform === 'youtube' || (platform === 'ytdlp' && url.includes('youtube.com'))) && process.env.RAPIDAPI_KEY;
 
-    if (type === 'audio' && !useRapidAPI && ['youtube', 'facebook', 'twitter', 'reddit', 'tiktok'].includes(platform)) {
+    if (type === 'audio' && ['youtube', 'facebook', 'twitter', 'reddit', 'tiktok'].includes(platform)) {
       res.header('Content-Disposition', 'attachment; filename="audio.mp3"');
       res.header('Content-Type', 'audio/mpeg');
       res.flushHeaders();
@@ -68,24 +66,9 @@ const downloadMedia = async (req, res, next) => {
         break;
 
       case 'youtube':
-        if (useRapidAPI) {
-          try {
-            mediaStream = await rapidapiService.downloadVideo(url, formatId);
-          } catch (err) {
-            console.warn(`[download] RapidAPI failed for YouTube (${err.message}), falling back to yt-dlp...`);
-            mediaStream = await ytdlpService.downloadVideo(url, formatId, type);
-          }
-        } else {
-          mediaStream = await ytdlpService.downloadVideo(url, formatId, type);
-        }
-        break;
-
       default:
-        if (useRapidAPI) {
-          mediaStream = await rapidapiService.downloadVideo(url, formatId);
-        } else {
-          mediaStream = await ytdlpService.downloadVideo(url, formatId, type);
-        }
+        mediaStream = await ytdlpService.downloadVideo(url, formatId, type);
+        break;
     }
 
     if (type === 'audio') {
