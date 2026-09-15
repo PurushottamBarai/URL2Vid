@@ -107,11 +107,17 @@ const getCookiesFlags = () => {
       let targetPath = p;
       try {
         const tmpCookiesPath = path.join(os.tmpdir(), "cookies_runtime.txt");
-        fs.copyFileSync(p, tmpCookiesPath);
+        const rawContent = fs.readFileSync(p, "utf8");
+        // Remove .youtube.com cookies because stale YouTube session tokens cause format errors on datacenter IPs
+        const filteredContent = rawContent
+          .split("\n")
+          .filter((line) => !line.includes(".youtube.com"))
+          .join("\n");
+        fs.writeFileSync(tmpCookiesPath, filteredContent);
         targetPath = tmpCookiesPath;
       } catch (err) {
         process.stderr.write(
-          `[cookies] Could not copy cookies file to tmp, using original path: ${err.message}\n`,
+          `[cookies] Could not write filtered cookies file to tmp, using original path: ${err.message}\n`,
         );
       }
       return { cookies: targetPath };
@@ -121,7 +127,12 @@ const getCookiesFlags = () => {
   if (process.env.YTDLP_COOKIES && process.env.YTDLP_COOKIES.trim()) {
     const tmpCookiesPath = path.join(os.tmpdir(), "render_cookies.txt");
     try {
-      fs.writeFileSync(tmpCookiesPath, process.env.YTDLP_COOKIES.trim() + "\n");
+      const rawContent = process.env.YTDLP_COOKIES.trim();
+      const filteredContent = rawContent
+        .split("\n")
+        .filter((line) => !line.includes(".youtube.com"))
+        .join("\n");
+      fs.writeFileSync(tmpCookiesPath, filteredContent + "\n");
       process.stdout.write(
         `[cookies] Found YTDLP_COOKIES env var, written to: ${tmpCookiesPath}\n`,
       );
@@ -141,6 +152,7 @@ const getCookiesFlags = () => {
 
 const applyCommonFlags = (baseFlags) => {
   const flags = {
+    extractorArgs: "youtube:player_client=ios,mweb,web",
     ...baseFlags,
     ...getCookiesFlags(),
     ...getProxyFlags(),
