@@ -168,6 +168,15 @@ const applyCommonFlags = (baseFlags, targetUrl = "") => {
   return flags;
 };
 
+const normalizeYouTubeUrl = (url) => {
+  if (!url || typeof url !== "string") return url;
+  const match = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/i);
+  if (match && match[1]) {
+    return `https://www.youtube.com/watch?v=${match[1]}`;
+  }
+  return url;
+};
+
 const formatAndLogStderr = (fnName, url, error) => {
   const stderrDetails = error.stderr
     ? error.stderr.trim()
@@ -179,7 +188,8 @@ const formatAndLogStderr = (fnName, url, error) => {
 };
 
 const fetchVideoInfo = async (url) => {
-  const targetUrl = await resolveRedditShortLink(url);
+  const resolved = await resolveRedditShortLink(url);
+  const targetUrl = normalizeYouTubeUrl(resolved);
   const flags = applyCommonFlags(
     {
       dumpJson: true,
@@ -208,7 +218,8 @@ const fetchVideoInfo = async (url) => {
 };
 
 const downloadVideo = async (url, formatId, type) => {
-  const targetUrl = await resolveRedditShortLink(url);
+  const resolved = await resolveRedditShortLink(url);
+  const targetUrl = normalizeYouTubeUrl(resolved);
   let formatArg = formatId ? `${formatId}+bestaudio/best` : "best";
 
   if (type === "mute") {
@@ -250,7 +261,8 @@ const downloadVideo = async (url, formatId, type) => {
 };
 
 const getAudioStream = (url) => {
-  const targetUrl = resolveRedditShortLinkSync(url);
+  const resolved = resolveRedditShortLinkSync(url);
+  const targetUrl = normalizeYouTubeUrl(resolved);
   const flags = applyCommonFlags(
     {
       output: "-",
