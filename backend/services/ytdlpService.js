@@ -114,7 +114,7 @@ const getCookiesFlags = () => {
           `[cookies] Could not copy cookies file to tmp, using original path: ${err.message}\n`,
         );
       }
-      return { cookies: targetPath, noWriteCookies: true };
+      return { cookies: targetPath };
     }
   }
 
@@ -125,7 +125,7 @@ const getCookiesFlags = () => {
       process.stdout.write(
         `[cookies] Found YTDLP_COOKIES env var, written to: ${tmpCookiesPath}\n`,
       );
-      return { cookies: tmpCookiesPath, noWriteCookies: true };
+      return { cookies: tmpCookiesPath };
     } catch (err) {
       process.stderr.write(
         `[cookies] Failed to write YTDLP_COOKIES to tmp: ${err.message}\n`,
