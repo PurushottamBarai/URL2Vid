@@ -22,24 +22,13 @@ const updateYtDlpBinary = async () => {
     const isWin = process.platform === 'win32';
     const assetName = isWin ? 'yt-dlp.exe' : 'yt-dlp';
     const targetPath = path.join(os.tmpdir(), assetName);
+    const downloadUrl = `https://github.com/yt-dlp/yt-dlp-nightly-builds/releases/latest/download/${assetName}`;
 
-    process.stdout.write(`[yt-dlp] Fetching latest nightly release info from GitHub for ${assetName}...\n`);
-    const releaseRes = await fetch('https://api.github.com/repos/yt-dlp/yt-dlp-nightly-builds/releases/latest', {
+    process.stdout.write(`[yt-dlp] Downloading latest nightly binary from GitHub releases to ${targetPath}...\n`);
+
+    const binaryRes = await fetch(downloadUrl, {
       headers: { 'User-Agent': 'URL2Vid/1.0' },
-      signal: AbortSignal.timeout(15000),
-    });
-
-    if (!releaseRes.ok) throw new Error(`GitHub API returned HTTP ${releaseRes.status}`);
-
-    const release = await releaseRes.json();
-    const asset = release.assets?.find(a => a.name === assetName);
-
-    if (!asset) throw new Error(`${assetName} not found in release assets`);
-
-    process.stdout.write(`[yt-dlp] Downloading ${release.tag_name} to ${targetPath}...\n`);
-
-    const binaryRes = await fetch(asset.browser_download_url, {
-      headers: { 'User-Agent': 'URL2Vid/1.0' },
+      redirect: 'follow',
       signal: AbortSignal.timeout(60000),
     });
 
@@ -50,7 +39,7 @@ const updateYtDlpBinary = async () => {
     fs.chmodSync(targetPath, 0o755);
 
     process.env.YTDLP_CUSTOM_BINARY = targetPath;
-    process.stdout.write(`[yt-dlp] Updated to ${release.tag_name} at ${targetPath}\n`);
+    process.stdout.write(`[yt-dlp] Updated nightly binary at ${targetPath} (${buffer.byteLength} bytes)\n`);
   } catch (err) {
     process.stderr.write(`[yt-dlp] Nightly update failed (proceeding with default binary): ${err.message}\n`);
   }
