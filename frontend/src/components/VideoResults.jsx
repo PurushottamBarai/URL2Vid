@@ -8,8 +8,24 @@ const formatDuration = (sec) => {
   return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
 };
 
-const formatLabel = (fmt) => {
-  const size = fmt.filesize ? ` — ${(fmt.filesize / 1048576).toFixed(1)}MB` : '';
+const formatBytes = (bytes) => {
+  if (!bytes || isNaN(bytes)) return null;
+  return `${(bytes / 1048576).toFixed(1)}MB`;
+};
+
+const getEstimatedAudioSize = (durationSec) => {
+  if (!durationSec || durationSec <= 0) return null;
+  return `~${((durationSec * 128 * 1000) / (8 * 1048576)).toFixed(1)}MB`;
+};
+
+const formatLabel = (fmt, durationSec) => {
+  let size = '';
+  if (fmt.filesize) {
+    size = ` — ${formatBytes(fmt.filesize)}`;
+  } else if (!fmt.hasVideo && durationSec) {
+    const est = getEstimatedAudioSize(durationSec);
+    if (est) size = ` — ${est}`;
+  }
   return `${fmt.resolution || 'Unknown'} ${fmt.ext ? `(.${fmt.ext})` : ''}${size}`;
 };
 
@@ -25,12 +41,47 @@ const VideoResults = React.memo(({ data, originalUrl, initialFormat = 'video' })
     );
   }, [data.formats, initialFormat]);
 
-  const defaultOptionLabel = 
-    initialFormat === 'audio' 
-      ? 'Best Audio (MP3)' 
-      : initialFormat === 'mute' 
-        ? 'Best Video (No Sound)' 
-        : 'Best Video (MP4)';
+  const defaultOptionLabel = useMemo(() => {
+    if (initialFormat === 'audio') {
+      const audioWithFilesize = availableFormats.find((f) => f.filesize);
+      const sizeStr = audioWithFilesize
+        ? ` — ${formatBytes(audioWithFilesize.filesize)}`
+        : data.duration
+          ? ` — ${getEstimatedAudioSize(data.duration)}`
+          : '';
+      return `Best Audio (MP3)${sizeStr}`;
+    }
+
+    const videoWithFilesize = availableFormats.find((f) => f.filesize);
+    const sizeStr = videoWithFilesize ? ` — ${formatBytes(videoWithFilesize.filesize)}` : '';
+
+    if (initialFormat === 'mute') {
+      return `Best Video (No Sound)${sizeStr}`;
+    }
+    return `Best Video (MP4)${sizeStr}`;
+  }, [initialFormat, availableFormats, data.duration]);
+
+  const currentSelectedSize = useMemo(() => {
+    if (selectedFormat === 'best' || selectedFormat === initialFormat) {
+      if (initialFormat === 'audio') {
+        const audioWithFilesize = availableFormats.find((f) => f.filesize);
+        if (audioWithFilesize) return formatBytes(audioWithFilesize.filesize);
+        if (data.duration) return getEstimatedAudioSize(data.duration);
+        return null;
+      }
+      const topFmt = availableFormats.find((f) => f.filesize);
+      return topFmt ? formatBytes(topFmt.filesize) : null;
+    }
+
+    const selected = availableFormats.find((f) => String(f.formatId) === String(selectedFormat));
+    if (selected?.filesize) {
+      return formatBytes(selected.filesize);
+    }
+    if (!selected?.hasVideo && data.duration) {
+      return getEstimatedAudioSize(data.duration);
+    }
+    return null;
+  }, [selectedFormat, initialFormat, availableFormats, data.duration]);
 
   const handleDownload = () => {
     const url = new URL(`${API_BASE_URL}/download`, window.location.origin);
@@ -87,7 +138,7 @@ const VideoResults = React.memo(({ data, originalUrl, initialFormat = 'video' })
                     value={fmt.formatId}
                     className="bg-surface"
                   >
-                    {formatLabel(fmt)}
+                    {formatLabel(fmt, data.duration)}
                   </option>
                 ))}
               </select>
@@ -96,9 +147,14 @@ const VideoResults = React.memo(({ data, originalUrl, initialFormat = 'video' })
 
             <button
               onClick={handleDownload}
-              className="w-full py-4 text-lg rounded-md font-bold transition-colors border border-accent text-accent hover:bg-accent/10 focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-base outline-none active:scale-[0.98] cursor-pointer"
+              className="w-full py-4 text-lg rounded-md font-bold transition-colors border border-accent text-accent hover:bg-accent/10 focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-base outline-none active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
             >
-              Download file
+              <span>Download file</span>
+              {currentSelectedSize && (
+                <span className="text-sm font-mono opacity-80 font-normal">
+                  ({currentSelectedSize})
+                </span>
+              )}
             </button>
           </div>
         </div>
