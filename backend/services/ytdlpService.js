@@ -4,15 +4,20 @@ import fs from "fs";
 import os from "os";
 import { execFileSync } from "child_process";
 import { randomUUID } from "crypto";
+import { getProxy, reportFailure, getPoolSize } from "./proxyManager.js";
 
 const TEMP_DIR = path.join(os.tmpdir(), "video-downloads");
 
 const FACEBOOK_DOMAINS = ["facebook.com", "fb.watch"];
+const PROXIED_DOMAINS = ["youtube.com", "youtu.be", "reddit.com"];
 const REDDIT_SHORT_LINK_REGEX =
   /^(?:https?:\/\/)?(?:www\.|old\.)?reddit\.com\/r\/[^/]+\/s\/[a-zA-Z0-9]+/i;
 
 const isFacebookUrl = (url) =>
   typeof url === "string" && FACEBOOK_DOMAINS.some((d) => url.includes(d));
+
+const shouldProxyUrl = (url) =>
+  typeof url === "string" && PROXIED_DOMAINS.some((d) => url.includes(d));
 
 const normalizeYouTubeUrl = (url) => {
   if (!url || typeof url !== "string") return url;
@@ -42,20 +47,22 @@ const resolveRedditShortLink = async (urlString) => {
     return urlString;
   }
   try {
-    const res = await fetch(urlString, {
-      method: "HEAD",
-      redirect: "follow",
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      },
-      signal: AbortSignal.timeout(10000),
-    });
-    if (res.url && res.url !== urlString) {
+    const proxy = getProxy();
+    const nullDevice = process.platform === "win32" ? "NUL" : "/dev/null";
+    const args = ["-s", "-o", nullDevice, "-w", "%{url_effective}", "-L"];
+    if (proxy) {
+      args.push("--proxy", proxy);
+    }
+    args.push(urlString);
+    const resolved = execFileSync("curl", args, {
+      encoding: "utf8",
+      timeout: 10000,
+    }).trim();
+    if (resolved && resolved !== urlString) {
       process.stdout.write(
-        `[reddit resolver] Resolved short-link ${urlString} → ${res.url}\n`,
+        `[reddit resolver] Resolved short-link ${urlString} → ${resolved}\n`,
       );
-      return res.url;
+      return resolved;
     }
   } catch (err) {
     process.stderr.write(
@@ -74,12 +81,17 @@ const resolveRedditShortLinkSync = (urlString) => {
     return urlString;
   }
   try {
+    const proxy = getProxy();
     const nullDevice = process.platform === "win32" ? "NUL" : "/dev/null";
-    const resolved = execFileSync(
-      "curl",
-      ["-s", "-o", nullDevice, "-w", "%{url_effective}", "-L", urlString],
-      { encoding: "utf8", timeout: 5000 },
-    ).trim();
+    const args = ["-s", "-o", nullDevice, "-w", "%{url_effective}", "-L"];
+    if (proxy) {
+      args.push("--proxy", proxy);
+    }
+    args.push(urlString);
+    const resolved = execFileSync("curl", args, {
+      encoding: "utf8",
+      timeout: 10000,
+    }).trim();
     if (resolved && resolved !== urlString) {
       process.stdout.write(
         `[reddit resolver sync] Resolved short-link ${urlString} → ${resolved}\n`,
@@ -100,22 +112,21 @@ const prepareTargetUrl = async (url) =>
 const prepareTargetUrlSync = (url) =>
   normalizeYouTubeUrl(resolveRedditShortLinkSync(url));
 
-const getProxyFlags = () => {
-  if (!process.env.YTDLP_PROXY) return {};
-  return {
-    proxy: process.env.YTDLP_PROXY,
-    socketTimeout: 45,
-    retries: 3,
-  };
-};
-
-const applyCommonFlags = (baseFlags) => {
+const applyCommonFlags = (targetUrl, baseFlags) => {
   const flags = {
-    extractorArgs: "youtube:player_client=mweb,ios,web,android",
+    extractorArgs: "youtube:player_client=ios,android,tv,web",
     ...baseFlags,
   };
 
-  Object.assign(flags, getProxyFlags());
+  if (shouldProxyUrl(targetUrl)) {
+    const proxy = getProxy();
+    if (proxy) {
+      flags.proxy = proxy;
+      flags.socketTimeout = 45;
+      flags.retries = 3;
+    }
+  }
+
   return flags;
 };
 
@@ -129,28 +140,55 @@ const formatAndLogStderr = (fnName, url, error) => {
   );
 };
 
-const executeWithFallback = async (fnName, targetUrl, flags, execAction) => {
-  try {
-    return await execAction(flags);
-  } catch (error) {
-    if (flags.proxy) {
-      process.stdout.write(`[yt-dlp ${fnName}] Retrying ${targetUrl} without proxy...\n`);
-      const { proxy, ...flagsWithoutProxy } = flags;
-      try {
-        return await execAction(flagsWithoutProxy);
-      } catch (retryErr) {
-        formatAndLogStderr(fnName, targetUrl, retryErr);
-        throw retryErr;
+const executeWithFallback = async (fnName, targetUrl, initialFlags, execAction) => {
+  let flags = { ...initialFlags };
+  const needsProxy = shouldProxyUrl(targetUrl);
+  const maxProxyAttempts = needsProxy ? Math.min(getPoolSize() || 1, 3) : 1;
+  let attempts = 0;
+
+  while (attempts < maxProxyAttempts) {
+    try {
+      return await execAction(flags);
+    } catch (error) {
+      attempts++;
+      if (flags.proxy) {
+        const failedProxy = flags.proxy;
+        const errSnippet =
+          error.stderr || error.shortMessage || error.message || String(error);
+        const nextProxy = reportFailure(failedProxy, errSnippet.slice(0, 100));
+
+        if (
+          nextProxy &&
+          nextProxy !== failedProxy &&
+          attempts < maxProxyAttempts
+        ) {
+          process.stdout.write(
+            `[yt-dlp ${fnName}] Retrying ${targetUrl} with next rotated proxy...\n`,
+          );
+          flags.proxy = nextProxy;
+          continue;
+        }
+
+        process.stdout.write(
+          `[yt-dlp ${fnName}] Retrying ${targetUrl} without proxy...\n`,
+        );
+        const { proxy, ...flagsWithoutProxy } = flags;
+        try {
+          return await execAction(flagsWithoutProxy);
+        } catch (retryErr) {
+          formatAndLogStderr(fnName, targetUrl, retryErr);
+          throw retryErr;
+        }
       }
+      formatAndLogStderr(fnName, targetUrl, error);
+      throw error;
     }
-    formatAndLogStderr(fnName, targetUrl, error);
-    throw error;
   }
 };
 
 const fetchVideoInfo = async (url) => {
   const targetUrl = await prepareTargetUrl(url);
-  const flags = applyCommonFlags({
+  const flags = applyCommonFlags(targetUrl, {
     dumpJson: true,
     noWarnings: true,
     noCheckCertificate: true,
@@ -186,7 +224,7 @@ const downloadVideo = async (url, formatId, type) => {
   const fileName = `video_${randomUUID()}.mp4`;
   const filePath = path.join(TEMP_DIR, fileName);
 
-  const flags = applyCommonFlags({
+  const flags = applyCommonFlags(targetUrl, {
     output: filePath,
     format: formatArg,
     mergeOutputFormat: "mp4",
@@ -212,7 +250,7 @@ const downloadVideo = async (url, formatId, type) => {
 
 const getAudioStream = async (url) => {
   const targetUrl = await prepareTargetUrl(url);
-  const flags = applyCommonFlags({
+  const flags = applyCommonFlags(targetUrl, {
     output: "-",
     format: "bestaudio/best",
     noWarnings: true,
