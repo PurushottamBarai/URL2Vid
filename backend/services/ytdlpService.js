@@ -143,7 +143,8 @@ const formatAndLogStderr = (fnName, url, error) => {
 const executeWithFallback = async (fnName, targetUrl, initialFlags, execAction) => {
   let flags = { ...initialFlags };
   const needsProxy = shouldProxyUrl(targetUrl);
-  const maxProxyAttempts = needsProxy ? Math.min(getPoolSize() || 1, 3) : 1;
+  const poolSize = getPoolSize();
+  const maxProxyAttempts = needsProxy ? Math.max(1, Math.min(poolSize, 10)) : 1;
   let attempts = 0;
 
   while (attempts < maxProxyAttempts) {
@@ -163,21 +164,23 @@ const executeWithFallback = async (fnName, targetUrl, initialFlags, execAction) 
           attempts < maxProxyAttempts
         ) {
           process.stdout.write(
-            `[yt-dlp ${fnName}] Retrying ${targetUrl} with next rotated proxy...\n`,
+            `[yt-dlp ${fnName}] Retrying ${targetUrl} with next rotated proxy (${attempts}/${maxProxyAttempts})...\n`,
           );
           flags.proxy = nextProxy;
           continue;
         }
 
-        process.stdout.write(
-          `[yt-dlp ${fnName}] Retrying ${targetUrl} without proxy...\n`,
-        );
-        const { proxy, ...flagsWithoutProxy } = flags;
-        try {
-          return await execAction(flagsWithoutProxy);
-        } catch (retryErr) {
-          formatAndLogStderr(fnName, targetUrl, retryErr);
-          throw retryErr;
+        if (!needsProxy) {
+          process.stdout.write(
+            `[yt-dlp ${fnName}] Retrying ${targetUrl} without proxy...\n`,
+          );
+          const { proxy, ...flagsWithoutProxy } = flags;
+          try {
+            return await execAction(flagsWithoutProxy);
+          } catch (retryErr) {
+            formatAndLogStderr(fnName, targetUrl, retryErr);
+            throw retryErr;
+          }
         }
       }
       formatAndLogStderr(fnName, targetUrl, error);

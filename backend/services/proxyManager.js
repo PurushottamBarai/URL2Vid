@@ -1,4 +1,4 @@
-let proxyPool = process.env.YTDLP_PROXY ? [process.env.YTDLP_PROXY] : [];
+let proxyPool = [];
 let currentIndex = 0;
 let isInitialized = false;
 let fetchPromise = null;
@@ -6,19 +6,39 @@ let fetchPromise = null;
 const WEBSHARE_API_URL =
   "https://proxy.webshare.io/api/v2/proxy/list/?mode=direct&page=1&page_size=25";
 
-const fetchWebshareProxies = async () => {
-  const apiKey = process.env.WEBSHARE_API_KEY;
-  if (!apiKey) return [];
+const parseExtraProxies = () => {
+  const extra = process.env.EXTRA_PROXIES;
+  if (!extra) return [];
+  return extra
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean);
+};
 
+const getSeedProxies = () => {
+  const seeds = [];
+  if (process.env.YTDLP_PROXY) {
+    seeds.push(process.env.YTDLP_PROXY.trim());
+  }
+  const extras = parseExtraProxies();
+  extras.forEach((p) => {
+    if (!seeds.includes(p)) seeds.push(p);
+  });
+  return seeds;
+};
+
+proxyPool = getSeedProxies();
+
+const fetchFromWebshareKey = async (apiKey) => {
   try {
     const res = await fetch(WEBSHARE_API_URL, {
-      headers: { Authorization: `Token ${apiKey}` },
+      headers: { Authorization: `Token ${apiKey.trim()}` },
       signal: AbortSignal.timeout(20000),
     });
 
     if (!res.ok) {
       process.stderr.write(
-        `[proxyManager] Webshare API returned status ${res.status}\n`,
+        `[proxyManager] Webshare API key returned status ${res.status}\n`,
       );
       return [];
     }
@@ -40,23 +60,46 @@ const fetchWebshareProxies = async () => {
   }
 };
 
+const fetchWebshareProxies = async () => {
+  const apiKeysRaw = process.env.WEBSHARE_API_KEY;
+  if (!apiKeysRaw) return [];
+
+  const keys = apiKeysRaw
+    .split(",")
+    .map((k) => k.trim())
+    .filter(Boolean);
+
+  const results = await Promise.all(keys.map(fetchFromWebshareKey));
+  const combined = [];
+  results.flat().forEach((p) => {
+    if (!combined.includes(p)) combined.push(p);
+  });
+  return combined;
+};
+
 const initProxyPool = async () => {
   if (fetchPromise) return fetchPromise;
 
   fetchPromise = (async () => {
     try {
       const fetched = await fetchWebshareProxies();
-      if (fetched.length > 0) {
-        proxyPool = fetched;
-        currentIndex = 0;
+      const extras = parseExtraProxies();
+      const newPool = [];
+
+      fetched.forEach((p) => {
+        if (!newPool.includes(p)) newPool.push(p);
+      });
+      extras.forEach((p) => {
+        if (!newPool.includes(p)) newPool.push(p);
+      });
+      if (process.env.YTDLP_PROXY && !newPool.includes(process.env.YTDLP_PROXY)) {
+        newPool.push(process.env.YTDLP_PROXY);
+      }
+
+      if (newPool.length > 0) {
+        proxyPool = newPool;
         process.stdout.write(
-          `[proxyManager] Initialized pool with ${proxyPool.length} Webshare proxies\n`,
-        );
-      } else if (process.env.YTDLP_PROXY && proxyPool.length === 0) {
-        proxyPool = [process.env.YTDLP_PROXY];
-        currentIndex = 0;
-        process.stdout.write(
-          `[proxyManager] Initialized pool with fallback YTDLP_PROXY\n`,
+          `[proxyManager] Initialized unified pool with ${proxyPool.length} proxies\n`,
         );
       }
     } finally {
@@ -68,7 +111,11 @@ const initProxyPool = async () => {
   return fetchPromise;
 };
 
-if (process.env.WEBSHARE_API_KEY || process.env.YTDLP_PROXY) {
+if (
+  process.env.WEBSHARE_API_KEY ||
+  process.env.EXTRA_PROXIES ||
+  process.env.YTDLP_PROXY
+) {
   initProxyPool();
   setInterval(() => {
     initProxyPool();
