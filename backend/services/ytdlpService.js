@@ -1,56 +1,252 @@
-import ytdlp from 'yt-dlp-exec';
-import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
+import ytdlp from "yt-dlp-exec";
+import path from "path";
+import fs from "fs";
+import os from "os";
+import { execFileSync } from "child_process";
+import { randomUUID } from "crypto";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const TEMP_DIR = path.join(os.tmpdir(), "video-downloads");
+
+const FACEBOOK_DOMAINS = ["facebook.com", "fb.watch"];
+const REDDIT_SHORT_LINK_REGEX =
+  /^(?:https?:\/\/)?(?:www\.|old\.)?reddit\.com\/r\/[^/]+\/s\/[a-zA-Z0-9]+/i;
+
+const isFacebookUrl = (url) =>
+  typeof url === "string" && FACEBOOK_DOMAINS.some((d) => url.includes(d));
+
+const normalizeYouTubeUrl = (url) => {
+  if (!url || typeof url !== "string") return url;
+  const match = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/i);
+  if (match && match[1]) {
+    return `https://www.youtube.com/watch?v=${match[1]}`;
+  }
+  return url;
+};
+
+const getYtdlpInstance = () => {
+  if (
+    process.env.YTDLP_CUSTOM_BINARY &&
+    fs.existsSync(process.env.YTDLP_CUSTOM_BINARY)
+  ) {
+    return ytdlp.create(process.env.YTDLP_CUSTOM_BINARY);
+  }
+  return ytdlp;
+};
+
+const resolveRedditShortLink = async (urlString) => {
+  if (
+    !urlString ||
+    typeof urlString !== "string" ||
+    !REDDIT_SHORT_LINK_REGEX.test(urlString)
+  ) {
+    return urlString;
+  }
+  try {
+    const res = await fetch(urlString, {
+      method: "HEAD",
+      redirect: "follow",
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (res.url && res.url !== urlString) {
+      process.stdout.write(
+        `[reddit resolver] Resolved short-link ${urlString} → ${res.url}\n`,
+      );
+      return res.url;
+    }
+  } catch (err) {
+    process.stderr.write(
+      `[reddit resolver] Resolution failed for ${urlString}: ${err.message}\n`,
+    );
+  }
+  return urlString;
+};
+
+const resolveRedditShortLinkSync = (urlString) => {
+  if (
+    !urlString ||
+    typeof urlString !== "string" ||
+    !REDDIT_SHORT_LINK_REGEX.test(urlString)
+  ) {
+    return urlString;
+  }
+  try {
+    const nullDevice = process.platform === "win32" ? "NUL" : "/dev/null";
+    const resolved = execFileSync(
+      "curl",
+      ["-s", "-o", nullDevice, "-w", "%{url_effective}", "-L", urlString],
+      { encoding: "utf8", timeout: 5000 },
+    ).trim();
+    if (resolved && resolved !== urlString) {
+      process.stdout.write(
+        `[reddit resolver sync] Resolved short-link ${urlString} → ${resolved}\n`,
+      );
+      return resolved;
+    }
+  } catch (err) {
+    process.stderr.write(
+      `[reddit resolver sync] Resolution failed for ${urlString}: ${err.message}\n`,
+    );
+  }
+  return urlString;
+};
+
+const prepareTargetUrl = async (url) =>
+  normalizeYouTubeUrl(await resolveRedditShortLink(url));
+
+const prepareTargetUrlSync = (url) =>
+  normalizeYouTubeUrl(resolveRedditShortLinkSync(url));
+
+const getProxyFlags = () => {
+  if (!process.env.YTDLP_PROXY) return {};
+  return {
+    proxy: process.env.YTDLP_PROXY,
+    socketTimeout: 45,
+    retries: 3,
+  };
+};
+
+const applyCommonFlags = (baseFlags) => {
+  const flags = {
+    extractorArgs: "youtube:player_client=mweb,ios,web,android",
+    ...baseFlags,
+  };
+
+  Object.assign(flags, getProxyFlags());
+  return flags;
+};
+
+const formatAndLogStderr = (fnName, url, error) => {
+  const stderrDetails = error.stderr
+    ? error.stderr.trim()
+    : error.shortMessage || error.message || String(error);
+  const exitCode = error.exitCode ?? error.code ?? "N/A";
+  process.stderr.write(
+    `[yt-dlp error] ${fnName} failed for URL: ${url} (ExitCode: ${exitCode})\n[yt-dlp stderr]: ${stderrDetails}\n`,
+  );
+};
+
+const executeWithFallback = async (fnName, targetUrl, flags, execAction) => {
+  try {
+    return await execAction(flags);
+  } catch (error) {
+    if (flags.proxy) {
+      process.stdout.write(`[yt-dlp ${fnName}] Retrying ${targetUrl} without proxy...\n`);
+      const { proxy, ...flagsWithoutProxy } = flags;
+      try {
+        return await execAction(flagsWithoutProxy);
+      } catch (retryErr) {
+        formatAndLogStderr(fnName, targetUrl, retryErr);
+        throw retryErr;
+      }
+    }
+    formatAndLogStderr(fnName, targetUrl, error);
+    throw error;
+  }
+};
 
 const fetchVideoInfo = async (url) => {
-  return await ytdlp(url, {
+  const targetUrl = await prepareTargetUrl(url);
+  const flags = applyCommonFlags({
     dumpJson: true,
     noWarnings: true,
     noCheckCertificate: true,
+    socketTimeout: 20,
+    retries: 1,
+  });
+
+  if (isFacebookUrl(targetUrl)) {
+    flags.addHeader = [
+      "referer:https://www.facebook.com/",
+      "accept-language:en-US,en;q=0.9",
+    ];
+  }
+
+  return executeWithFallback("fetchVideoInfo", targetUrl, flags, (runFlags) => {
+    const ytdlpExec = getYtdlpInstance();
+    return ytdlpExec(targetUrl, runFlags);
   });
 };
 
 const downloadVideo = async (url, formatId, type) => {
-  let formatArg = formatId ? `${formatId}+bestaudio/best` : 'best';
-  
-  if (type === 'mute') {
-    formatArg = formatId ? `${formatId}` : 'bestvideo';
-  }
-  
-  // Appending a random string and timestamp to prevent collisions during concurrent downloads
-  const fileName = `video_${Date.now()}_${Math.floor(Math.random() * 10000)}.mp4`;
-  const tempDir = path.join(__dirname, '..', 'tmp');
-  
-  if (!fs.existsSync(tempDir)) {
-    fs.mkdirSync(tempDir);
-  }
-  
-  const filePath = path.join(tempDir, fileName);
+  const targetUrl = await prepareTargetUrl(url);
+  let formatArg = formatId ? `${formatId}+bestaudio/best` : "best";
 
-  await ytdlp(url, {
+  if (type === "mute") {
+    formatArg = formatId ? `${formatId}` : "bestvideo";
+  }
+
+  if (!fs.existsSync(TEMP_DIR)) {
+    fs.mkdirSync(TEMP_DIR, { recursive: true });
+  }
+
+  const fileName = `video_${randomUUID()}.mp4`;
+  const filePath = path.join(TEMP_DIR, fileName);
+
+  const flags = applyCommonFlags({
     output: filePath,
     format: formatArg,
-    mergeOutputFormat: 'mp4',
+    mergeOutputFormat: "mp4",
     noWarnings: true,
+    socketTimeout: 30,
+    retries: 1,
   });
 
-  return filePath;
+  await executeWithFallback("downloadVideo", targetUrl, flags, (runFlags) => {
+    const ytdlpExec = getYtdlpInstance();
+    return ytdlpExec(targetUrl, runFlags);
+  });
+
+  const stream = fs.createReadStream(filePath);
+  stream.tempFilePath = filePath;
+
+  const cleanupVideoFile = () => fs.unlink(filePath, () => {});
+  stream.once("close", cleanupVideoFile);
+  stream.once("error", cleanupVideoFile);
+
+  return stream;
 };
 
-const getAudioStream = (url) => {
-  return ytdlp.exec(url, {
-    output: '-', // stdout
-    format: 'bestaudio',
+const getAudioStream = async (url) => {
+  const targetUrl = await prepareTargetUrl(url);
+  const flags = applyCommonFlags({
+    output: "-",
+    format: "bestaudio/best",
     noWarnings: true,
-  }, { stdio: ['ignore', 'pipe', 'ignore'] });
+    socketTimeout: 30,
+    retries: 1,
+  });
+
+  const ytdlpExec = getYtdlpInstance();
+  const proc = ytdlpExec.exec(targetUrl, flags, {
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  let stderrBuffer = "";
+  if (proc.stderr) {
+    proc.stderr.on("data", (chunk) => {
+      stderrBuffer += chunk.toString();
+    });
+  }
+
+  proc.on("error", (err) => {
+    process.stderr.write(
+      `[yt-dlp error] getAudioStream process error for URL: ${targetUrl}\n[yt-dlp stderr]: ${stderrBuffer || err.message}\n`,
+    );
+  });
+
+  proc.on("exit", (code) => {
+    if (code !== 0 && code !== null) {
+      process.stderr.write(
+        `[yt-dlp error] getAudioStream exited with code ${code} for URL: ${targetUrl}\n[yt-dlp stderr]: ${stderrBuffer || "No stderr output"}\n`,
+      );
+    }
+  });
+
+  return proc;
 };
 
-export {
-  fetchVideoInfo,
-  downloadVideo,
-  getAudioStream
-};
+export { fetchVideoInfo, downloadVideo, getAudioStream };

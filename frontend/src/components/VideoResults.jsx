@@ -1,92 +1,93 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import PropTypes from 'prop-types';
 import { ChevronDown } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 
-/**
- * VideoResults takes the data returned by the backend and displays the video information,
- * thumbnails, formats, and handles the actual download triggers.
- * It receives 'data' (the API response object) and 'originalUrl' as props from App.jsx.
- */
-const VideoResults = ({ data, originalUrl, initialFormat }) => {
-  // Keeps track of which format (video/audio quality) the user has selected from the dropdown
+const formatDuration = (sec) => {
+  if (!sec) return 'Unknown length';
+  return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+};
+
+const formatLabel = (fmt) => {
+  const size = fmt.filesize ? ` — ${(fmt.filesize / 1048576).toFixed(1)}MB` : '';
+  return `${fmt.resolution || 'Unknown'} ${fmt.ext ? `(.${fmt.ext})` : ''}${size}`;
+};
+
+const VideoResults = React.memo(({ data, originalUrl, initialFormat = 'video' }) => {
   const [selectedFormat, setSelectedFormat] = useState(initialFormat || 'best');
 
-  // If there's no data yet, render nothing (conditional rendering)
   if (!data) return null;
 
-  /**
-   * handleDownload builds a unique URL pointing to our backend's /api/download route.
-   */
-  const handleDownload = () => {
-    // Construct the backend download endpoint URL
-    const url = new URL(`${API_BASE_URL}/download`);
-    url.searchParams.append('url', originalUrl);
-    
-    // Add specific parameters based on what the user selected in the UI dropdown
-    if (initialFormat === 'audio') {
-      url.searchParams.append('type', 'audio');
-    } else if (initialFormat === 'mute') {
-      url.searchParams.append('type', 'mute');
-      if (selectedFormat !== 'best') {
-        url.searchParams.append('formatId', selectedFormat);
-      }
-    } else {
-      url.searchParams.append('type', 'video');
-      if (selectedFormat !== 'best') {
-        url.searchParams.append('formatId', selectedFormat);
-      }
-    }
-    
-    // Create a temporary link element to trigger the browser's native download behavior
-    const a = document.createElement('a');
-    a.href = url.toString();
-    a.download = '';
-    document.body.appendChild(a);
-    a.click(); // Trigger download
-    document.body.removeChild(a); // Clean up
-  };
+  const availableFormats = useMemo(() => {
+    if (!data.formats) return [];
+    return data.formats.filter((fmt) =>
+      initialFormat === 'audio' ? !fmt.hasVideo : fmt.hasVideo
+    );
+  }, [data.formats, initialFormat]);
 
-  const getFormatLabel = (fmt) => {
-    return `${fmt.resolution || 'Unknown'} ${fmt.ext ? `(.${fmt.ext})` : ''} ${fmt.filesize ? `— ${(fmt.filesize/(1024*1024)).toFixed(1)}MB` : ''}`;
+  const defaultOptionLabel = 
+    initialFormat === 'audio' 
+      ? 'Best Audio (MP3)' 
+      : initialFormat === 'mute' 
+        ? 'Best Video (No Sound)' 
+        : 'Best Video (MP4)';
+
+  const handleDownload = () => {
+    const url = new URL(`${API_BASE_URL}/download`, window.location.origin);
+    url.searchParams.set('url', originalUrl);
+    url.searchParams.set('type', initialFormat || 'video');
+    if (selectedFormat !== 'best') {
+      url.searchParams.set('formatId', selectedFormat);
+    }
+
+    const link = document.createElement('a');
+    link.href = url.toString();
+    link.download = '';
+    link.click();
   };
 
   return (
     <div className="w-full mt-4 animate-slide-up">
       <div className="card p-6 md:p-8 flex flex-col md:flex-row gap-6 md:gap-8 items-stretch">
-        
-        {/* Left Side: Thumbnail */}
         {data.thumbnail && (
           <div className="w-full md:w-48 h-48 md:h-auto flex-shrink-0 relative overflow-hidden rounded-md bg-border/50">
-            <img 
-              src={data.thumbnail} 
-              alt={data.title} 
-              className="absolute inset-0 w-full h-full object-cover" 
+            <img
+              src={data.thumbnail}
+              alt={data.title || 'Video thumbnail'}
+              loading="lazy"
+              className="absolute inset-0 w-full h-full object-cover"
             />
           </div>
         )}
 
-        {/* Right Side: Details & Actions */}
         <div className="flex-1 w-full flex flex-col gap-5 py-1">
           <div className="flex flex-col gap-1.5">
             <h2 className="text-text-primary text-xl font-bold line-clamp-2 leading-tight">
               {data.title || 'Extracted Video'}
             </h2>
             <p className="text-text-secondary font-mono text-sm">
-              {data.duration ? `${Math.floor(data.duration / 60)}:${(data.duration % 60).toString().padStart(2, '0')}` : 'Unknown length'}
+              {formatDuration(data.duration)}
             </p>
           </div>
 
           <div className="flex flex-col gap-3">
             <div className="relative w-full">
-              <select 
+              <select
                 value={selectedFormat}
                 onChange={(e) => setSelectedFormat(e.target.value)}
                 className="w-full appearance-none bg-surface border border-border text-text-primary rounded-md px-4 py-3 pr-10 focus:outline-none focus:border-accent font-mono text-sm cursor-pointer shadow-none"
+                aria-label="Select format"
               >
-                <option value="best" className="bg-surface">Best Video (MP4)</option>
-                {data.formats && data.formats.map((fmt, idx) => (
-                  <option key={fmt.formatId || idx} value={fmt.formatId} className="bg-surface">
-                    {getFormatLabel(fmt)}
+                <option value={initialFormat || 'best'} className="bg-surface">
+                  {defaultOptionLabel}
+                </option>
+                {availableFormats.map((fmt, idx) => (
+                  <option
+                    key={fmt.formatId || fmt.url || `${fmt.resolution}-${fmt.ext}-${idx}`}
+                    value={fmt.formatId}
+                    className="bg-surface"
+                  >
+                    {formatLabel(fmt)}
                   </option>
                 ))}
               </select>
@@ -95,7 +96,7 @@ const VideoResults = ({ data, originalUrl, initialFormat }) => {
 
             <button
               onClick={handleDownload}
-              className="w-full py-4 text-lg rounded-md font-bold transition-colors border border-accent text-accent hover:bg-accent/10 focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-base outline-none active:scale-[0.98]"
+              className="w-full py-4 text-lg rounded-md font-bold transition-colors border border-accent text-accent hover:bg-accent/10 focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-base outline-none active:scale-[0.98] cursor-pointer"
             >
               Download file
             </button>
@@ -104,6 +105,19 @@ const VideoResults = ({ data, originalUrl, initialFormat }) => {
       </div>
     </div>
   );
+});
+
+VideoResults.displayName = 'VideoResults';
+
+VideoResults.propTypes = {
+  data: PropTypes.shape({
+    title: PropTypes.string,
+    duration: PropTypes.number,
+    thumbnail: PropTypes.string,
+    formats: PropTypes.arrayOf(PropTypes.object),
+  }),
+  originalUrl: PropTypes.string.isRequired,
+  initialFormat: PropTypes.string,
 };
 
 export default VideoResults;

@@ -1,33 +1,50 @@
 import * as ytdlpService from '../services/ytdlpService.js';
 import * as snapchatService from '../services/snapchatService.js';
+import * as pinterestService from '../services/pinterestService.js';
+import * as threadsService from '../services/threadsService.js';
+import * as linkedinService from '../services/linkedinService.js';
 import { processVideoFormats } from '../utils/formatHelpers.js';
+import { detectPlatform } from '../utils/platformDetector.js';
+
+const resolveVideoInfo = async (platform, url) => {
+  switch (platform) {
+    case 'snapchat':
+      return snapchatService.fetchVideoInfo(url);
+    case 'pinterest':
+      return pinterestService.fetchVideoInfo(url).catch(() => 
+        ytdlpService.fetchVideoInfo(url)
+      );
+    case 'threads':
+      return threadsService.fetchVideoInfo(url).catch(() => 
+        ytdlpService.fetchVideoInfo(url)
+      );
+    case 'linkedin':
+      return ytdlpService.fetchVideoInfo(url).catch(() => 
+        linkedinService.fetchVideoInfo(url)
+      );
+    default:
+      return ytdlpService.fetchVideoInfo(url);
+  }
+};
 
 const getInfo = async (req, res, next) => {
   const { url } = req.body;
 
   try {
-    let info;
-    if (url.includes('snapchat.com')) {
-      info = await snapchatService.fetchVideoInfo(url);
-    } else {
-      info = await ytdlpService.fetchVideoInfo(url);
-    }
-    
+    const platform = detectPlatform(url);
+    const info = await resolveVideoInfo(platform, url);
     const availableFormats = processVideoFormats(info.formats);
 
-    res.json({
+    res.status(200).json({
       title: info.title,
       thumbnail: info.thumbnail,
       duration: info.duration,
       formats: availableFormats,
-      audioAvailable: info.formats?.some(f => f.acodec !== 'none') || false,
+      audioAvailable: Array.isArray(info.formats) && info.formats.some((f) => f.acodec !== 'none'),
     });
   } catch (error) {
-    // Pass execution to the global errorHandler instead of manually sending a 500
     next(error);
   }
 };
 
-export {
-  getInfo
-};
+export { getInfo };

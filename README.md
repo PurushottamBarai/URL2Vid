@@ -19,7 +19,6 @@ URL2Vid is a simple and efficient web application that takes a video URL and gen
 - Instagram (Posts & Reels)
 - Facebook (Videos & Reels)
 - X (Twitter)
-- TikTok
 - Reddit
 - LinkedIn
 - Snapchat Spotlight
@@ -46,15 +45,29 @@ cd URL2Vid
 ```bash
 cd backend
 npm install
-# Ensure you are running Node and have FFmpeg installed
-npm run dev
+# (Optional) Create .env file if using proxy or custom port
+npm start
 ```
+
+#### Environment Variables (Backend `.env` / Render Dashboard):
+- `PORT` (default: `3001`): Backend server port.
+- `YTDLP_PROXY` (optional): HTTP/SOCKS5 proxy URL (e.g. `http://user:pass@host:port`) to route media extraction through residential/proxy servers.
 
 ### 3. Frontend Setup
 ```bash
 cd ../frontend
 npm install
 npm run dev
+```
+
+### 4. Running Tests
+Run the test suite against your local backend or production API:
+```bash
+# Test local backend (http://localhost:3001)
+node test_urls.mjs
+
+# Test production deployment
+API_URL=https://url2vid.onrender.com node test_urls.mjs
 ```
 
 ## Usage

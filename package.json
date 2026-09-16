@@ -1,5 +1,5 @@
 {
-  "name": "url2vid-unified",
+  "name": "url2vid",
   "version": "1.0.0",
   "description": "Unified build script for URL2Vid",
   "scripts": {
@@ -7,6 +7,6 @@
     "build": "npm run install-all && npm run build --prefix frontend",
     "start": "npm start --prefix backend"
   },
-  "author": "URL2Vid",
+  "author": "Purushottam Barai",
   "license": "ISC"
 }

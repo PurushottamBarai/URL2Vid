@@ -1,29 +1,12 @@
 import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 import { Download } from 'lucide-react';
-import { SiYoutube, SiInstagram, SiFacebook, SiX, SiTiktok, SiPinterest, SiReddit, SiSnapchat, SiThreads } from 'react-icons/si';
-import { FaLinkedin } from 'react-icons/fa';
 import { checkUrlStatus } from '../utils/urlValidation.js';
 
-const platformIcons = [
-  { name: 'YouTube', Icon: SiYoutube, activeColor: 'text-[#FF0000]' },
-  { name: 'Instagram', Icon: SiInstagram, activeColor: 'text-[#E1306C]' },
-  { name: 'Facebook', Icon: SiFacebook, activeColor: 'text-[#1877F2]' },
-  { name: 'X', Icon: SiX, activeColor: 'text-[#000000]' },
-  { name: 'TikTok', Icon: SiTiktok, activeColor: 'text-[#000000]' },
-  { name: 'Pinterest', Icon: SiPinterest, activeColor: 'text-[#E60023]' },
-  { name: 'Reddit', Icon: SiReddit, activeColor: 'text-[#FF4500]' },
-  { name: 'LinkedIn', Icon: FaLinkedin, activeColor: 'text-[#0A66C2]' },
-  { name: 'Snapchat', Icon: SiSnapchat, activeColor: 'text-[#FFFC00]' },
-  { name: 'Threads', Icon: SiThreads, activeColor: 'text-[#000000]' },
-];
-
-const Hero = ({ onFetch, isLoading }) => {
+const Hero = React.memo(({ onFetch, isLoading, customTitle, customSubtitle }) => {
   const [url, setUrl] = useState('');
   const [error, setError] = useState('');
-  const [format, setFormat] = useState('best'); // Default to Video
-
-  // Dynamically check URL to see if it matches a platform
-  const activePlatform = checkUrlStatus(url).platform;
+  const [format, setFormat] = useState('best');
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -44,21 +27,25 @@ const Hero = ({ onFetch, isLoading }) => {
     <div className="flex flex-col items-center w-full animate-slide-up">
       <div className="flex flex-col items-center text-center mb-8">
         <h1 className="text-4xl md:text-5xl font-bold text-text-primary mb-4 tracking-tight">
-          Download Video From URL
+          {customTitle || 'Download Video From URL'}
         </h1>
-        <p className="text-text-secondary max-w-2xl text-[15px]">
-          Free online video downloader — paste any URL from your favorite platforms.
+        <p className="text-text-secondary max-w-2xl text-sm md:text-base">
+          {customSubtitle || 'Free online video downloader — paste any URL from your favorite platforms.'}
         </p>
       </div>
       
       <div className="w-full max-w-2xl flex flex-col gap-4">
-        <div className="w-full card p-8 flex flex-col justify-center overflow-hidden">
+        <div className="w-full card p-8 flex flex-col justify-center overflow-hidden mb-8">
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div>
-              <label className="text-[11px] font-bold text-text-secondary tracking-widest uppercase mb-2 block">
+              <label 
+                htmlFor="video-url-input"
+                className="text-xs font-bold text-text-secondary tracking-widest uppercase mb-2 block"
+              >
                 Paste Video URL
               </label>
               <input
+                id="video-url-input"
                 type="url"
                 placeholder="https://..."
                 value={url}
@@ -68,15 +55,25 @@ const Hero = ({ onFetch, isLoading }) => {
                 }}
                 required
                 className="input-field"
+                aria-label="Video URL input"
+                onFocus={(e) => e.target.select()}
+                onClick={(e) => e.target.select()}
               />
-              {error && <p className="text-error text-sm font-medium mt-1">{error}</p>}
+              {error && (
+                <p role="alert" aria-live="polite" className="text-error text-sm font-medium mt-1">
+                  {error}
+                </p>
+              )}
             </div>
 
             <div className="flex gap-3">
+              <label htmlFor="format-select" className="sr-only">Choose Format</label>
               <select
+                id="format-select"
                 value={format}
                 onChange={(e) => setFormat(e.target.value)}
-                className="input-field w-[35%] font-mono text-sm cursor-pointer font-medium"
+                className="input-field w-2/5 sm:w-1/3 font-mono text-sm cursor-pointer font-medium"
+                aria-label="Format selection"
               >
                 <option value="best">Video (MP4)</option>
                 <option value="audio">Audio (MP3)</option>
@@ -87,12 +84,13 @@ const Hero = ({ onFetch, isLoading }) => {
                 type="submit"
                 disabled={isLoading || !url}
                 className="btn-primary flex-1 py-3 text-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
+                aria-label="Extract video"
               >
                 {isLoading ? (
                   <div className="w-5 h-5 border-2 border-surface/30 border-t-surface rounded-full animate-spin"></div>
                 ) : (
                   <>
-                    <Download className="w-5 h-5" />
+                    <Download className="w-5 h-5" aria-hidden="true" />
                     <span>Extract</span>
                   </>
                 )}
@@ -101,32 +99,17 @@ const Hero = ({ onFetch, isLoading }) => {
           </form>
         </div>
       </div>
-
-      <div id="supported-platforms" className="flex flex-col items-center mt-12 mb-8 gap-4">
-        <span className="text-sm font-semibold text-text-secondary">Supported platforms:</span>
-        <div className="flex flex-wrap items-center justify-center gap-6 w-full max-w-2xl">
-          {platformIcons.map((platform, idx) => {
-            const isActive = activePlatform === platform.name;
-            return (
-              <div 
-                key={idx} 
-                className="flex items-center justify-center transition-colors" 
-                title={platform.name}
-              >
-                {platform.isText ? (
-                  <span className={`text-xl font-bold ${isActive ? platform.activeColor : 'text-text-secondary/60'}`}>
-                    {platform.text}
-                  </span>
-                ) : (
-                  <platform.Icon className={`w-6 h-6 transition-colors duration-300 ${isActive ? platform.activeColor : 'text-text-secondary/60'}`} />
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
     </div>
   );
+});
+
+Hero.displayName = 'Hero';
+
+Hero.propTypes = {
+  onFetch: PropTypes.func.isRequired,
+  isLoading: PropTypes.bool.isRequired,
+  customTitle: PropTypes.string,
+  customSubtitle: PropTypes.string,
 };
 
 export default Hero;

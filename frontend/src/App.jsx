@@ -1,67 +1,63 @@
-import React, { useState } from 'react';
-import axios from 'axios';
-import { API_BASE_URL } from './config';
+import React, { Suspense, lazy, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
 import Navbar from './components/Navbar';
-import Hero from './components/Hero';
-import VideoResults from './components/VideoResults';
-import ErrorBanner from './components/ErrorBanner';
 import LoadingSkeleton from './components/LoadingSkeleton';
+import { platformsData } from './data/platforms';
+
+const Home = lazy(() => import('./pages/Home'));
+const NotFound = lazy(() => import('./pages/NotFound'));
+const PlatformLanding = lazy(() => import('./pages/PlatformLanding'));
+
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    const timer = setTimeout(() => {
+      const input = document.getElementById('video-url-input');
+      if (input) input.focus();
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [pathname]);
+
+  return null;
+};
 
 const App = () => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [videoData, setVideoData] = useState(null);
-  const [lastUrl, setLastUrl] = useState('');
-  const [initialFormat, setInitialFormat] = useState('best'); // store format intent
-
-  const handleFetchInfo = async (url, format) => {
-    setIsLoading(true);
-    setError('');
-    setVideoData(null);
-    setLastUrl(url);
-    setInitialFormat(format);
-
-    try {
-      const response = await axios.post(`${API_BASE_URL}/info`, { url });
-      setVideoData(response.data);
-    } catch (err) {
-      if (err.response?.data?.error) {
-        setError(err.response.data.error);
-      } else {
-        setError('Failed to fetch video. Please check the URL and try again.');
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
-    <div className="min-h-screen flex flex-col font-sans">
-      <Navbar />
-      
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col items-center justify-start pt-8 md:pt-14 pb-24 px-4 w-full max-w-2xl mx-auto">
-        <Hero onFetch={handleFetchInfo} isLoading={isLoading} />
+    <Router>
+      <ScrollToTop />
+      <div className="min-h-screen flex flex-col font-sans">
+        <Navbar />
         
-        <ErrorBanner message={error} />
+        <Suspense fallback={<div className="flex-1 flex items-center justify-center pt-14"><LoadingSkeleton /></div>}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            
+            {platformsData.map((platform) => (
+              <Route 
+                key={platform.path} 
+                path={platform.path} 
+                element={<PlatformLanding {...platform} />} 
+              />
+            ))}
+            
+            <Route path="/x-video-downloader" element={<Navigate to="/twitter-video-downloader" replace />} />
+            
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
 
-        {isLoading && <LoadingSkeleton />}
-
-        {!isLoading && videoData && (
-          <VideoResults data={videoData} originalUrl={lastUrl} initialFormat={initialFormat} />
-        )}
-      </main>
-
-      {/* Footer */}
-      <footer className="w-full py-12 text-center text-text-secondary text-sm border-t border-border mt-auto">
-        <p className="mb-2">Supported: YouTube, Instagram, Facebook, X, TikTok, Vimeo, Twitch, and more.</p>
-        <p className="text-xs opacity-75">
-          Disclaimer: This tool is for personal and educational use only.
-        </p>
-      </footer>
-    </div>
+        <footer className="w-full py-12 text-center text-text-secondary text-sm border-t border-border mt-auto">
+          <p className="mb-2">Supported: YouTube, Instagram, Facebook, X, Vimeo, Twitch, and more.</p>
+          <p className="text-xs opacity-75">
+            Disclaimer: This tool is for personal and educational use only.
+          </p>
+        </footer>
+      </div>
+    </Router>
   );
-}
+};
 
 export default App;

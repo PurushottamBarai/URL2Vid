@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://url2vid.com/sitemap.xml
+Sitemap: https://url2vid.onrender.com/sitemap.xml
