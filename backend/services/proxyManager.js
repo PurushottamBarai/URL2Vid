@@ -92,14 +92,17 @@ const initProxyPool = async () => {
       extras.forEach((p) => {
         if (!newPool.includes(p)) newPool.push(p);
       });
-      if (process.env.YTDLP_PROXY && !newPool.includes(process.env.YTDLP_PROXY)) {
-        newPool.push(process.env.YTDLP_PROXY);
+      if (process.env.YTDLP_PROXY) {
+        const primary = process.env.YTDLP_PROXY.trim();
+        const filtered = newPool.filter((p) => p !== primary);
+        newPool.length = 0;
+        newPool.push(primary, ...filtered);
       }
 
       if (newPool.length > 0) {
         proxyPool = newPool;
         process.stdout.write(
-          `[proxyManager] Initialized unified pool with ${proxyPool.length} proxies\n`,
+          `[proxyManager] Initialized unified pool with ${proxyPool.length} proxies (primary: ${proxyPool[0]})\n`,
         );
       }
     } finally {
