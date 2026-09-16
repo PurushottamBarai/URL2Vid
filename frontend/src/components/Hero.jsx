@@ -29,7 +29,7 @@ const Hero = React.memo(({ onFetch, isLoading, customTitle, customSubtitle }) =>
         <h1 className="text-4xl md:text-5xl font-bold text-text-primary mb-4 tracking-tight">
           {customTitle || 'Download Video From URL'}
         </h1>
-        <p className="text-text-secondary max-w-2xl text-sm md:text-base">
+        <p className="hero-subtitle text-text-secondary max-w-2xl text-sm md:text-[16px] leading-relaxed">
           {customSubtitle || 'Free online video downloader — paste any URL from your favorite platforms.'}
         </p>
       </div>

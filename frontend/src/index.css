@@ -6,7 +6,7 @@
   --color-surface: #FFFFFF;
   --color-border: #E3E1DC;
   --color-text-primary: #191C1B;
-  --color-text-secondary: #6B7069;
+  --color-text-secondary: #4A4E49;
   --color-accent: #0E7C7B;
   --color-accent-hover: #0A5F5E;
   --color-accent-orange: #E8622C;
@@ -41,4 +41,9 @@
   .card {
     @apply bg-surface rounded-md border border-border p-6 shadow-none;
   }
+
+  .hero-subtitle {
+    color: var(--color-text-secondary) !important;
+  }
 }
+

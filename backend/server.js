@@ -60,16 +60,25 @@ await updateYtDlpBinary();
 const app = express();
 const PORT = parseInt(process.env.PORT || '3001', 10);
 
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
-  : ['http://localhost:5173', 'https://url2vid.onrender.com'];
+const defaultAllowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3001',
+  'https://url2vid.onrender.com',
+  'https://url2vid.codedeck.me',
+];
+
+const envOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim()).filter(Boolean)
+  : [];
+
+const allowedOrigins = Array.from(new Set([...defaultAllowedOrigins, ...envOrigins]));
 
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      callback(null, false);
     }
   },
   methods: ['GET', 'POST'],
