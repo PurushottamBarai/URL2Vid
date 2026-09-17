@@ -1,5 +1,6 @@
 import https from 'https';
 import { REQUEST_HEADERS, DUMMY_FORMAT, fetchContentLength } from '../utils/constants.js';
+import { videoInfoCache } from '../utils/cache.js';
 
 const fetchPageHtml = async (url) => {
   const response = await fetch(url, { headers: REQUEST_HEADERS });
@@ -10,6 +11,11 @@ const fetchPageHtml = async (url) => {
 };
 
 export const fetchVideoInfo = async (url) => {
+  const cached = videoInfoCache.get(url);
+  if (cached) {
+    return cached;
+  }
+
   const html = await fetchPageHtml(url);
 
   const videoUrlMatch = html.match(/<meta[^>]*property="og:video(:secure_url)?"[^>]*content="([^"]+)"/);
@@ -28,12 +34,15 @@ export const fetchVideoInfo = async (url) => {
   const duration = durMatch ? Math.round(parseInt(durMatch[1], 10) / 1000) : null;
   const filesize = await fetchContentLength(videoUrl, REQUEST_HEADERS);
 
-  return {
+  const result = {
     title,
     thumbnail,
     duration,
     formats: [{ ...DUMMY_FORMAT, url: videoUrl, filesize }],
   };
+
+  videoInfoCache.set(url, result);
+  return result;
 };
 
 export const downloadVideo = async (url) => {

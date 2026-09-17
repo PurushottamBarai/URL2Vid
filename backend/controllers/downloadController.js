@@ -7,6 +7,7 @@ import * as threadsService from '../services/threadsService.js';
 import * as linkedinService from '../services/linkedinService.js';
 import * as ffmpegService from '../services/ffmpegService.js';
 import { detectPlatform } from '../utils/platformDetector.js';
+import { videoInfoCache } from '../utils/cache.js';
 
 const FORMAT_ID_PATTERN = /^[a-zA-Z0-9_-]+$/;
 
@@ -28,7 +29,11 @@ const resolveMediaStream = async (platform, url, formatId, type) => {
       return ytdlpService.downloadVideo(url, formatId, type).catch(() => 
         linkedinService.downloadVideo(url)
       );
-    default:
+    default: {
+      const cached = videoInfoCache.get(url);
+      if (cached?.youtubeId) {
+        return youtubeService.downloadVideo(`https://www.youtube.com/watch?v=${cached.youtubeId}`, formatId, type);
+      }
       return ytdlpService.downloadVideo(url, formatId, type).catch((err) => {
         const fullErr = `${err.stderr || ''} ${err.message || ''} ${err.shortMessage || ''}`;
         const ytIdMatch = fullErr.match(/\[youtube\]\s+([a-zA-Z0-9_-]{11})/i);
@@ -37,6 +42,7 @@ const resolveMediaStream = async (platform, url, formatId, type) => {
         }
         throw err;
       });
+    }
   }
 };
 

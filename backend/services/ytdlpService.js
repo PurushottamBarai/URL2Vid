@@ -2,8 +2,12 @@ import ytdlp from "yt-dlp-exec";
 import path from "path";
 import fs from "fs";
 import os from "os";
+import http from "http";
+import https from "https";
+import { URL } from "url";
 import { execFileSync } from "child_process";
 import { randomUUID } from "crypto";
+import { videoInfoCache } from "../utils/cache.js";
 const TEMP_DIR = path.join(os.tmpdir(), "video-downloads");
 
 const FACEBOOK_DOMAINS = ["facebook.com", "fb.watch"];
@@ -108,6 +112,15 @@ const formatAndLogStderr = (fnName, url, error) => {
     ? error.stderr.trim()
     : error.shortMessage || error.message || String(error);
   const exitCode = error.exitCode ?? error.code ?? "N/A";
+
+  // When a Reddit/third-party post embeds YouTube, don't spam stderr with a failure notice since it's handled gracefully
+  if (/\[youtube\]\s+[a-zA-Z0-9_-]{11}/i.test(stderrDetails)) {
+    process.stdout.write(
+      `[yt-dlp info] Detected embedded YouTube video in ${url} - delegating to youtubeService\n`
+    );
+    return;
+  }
+
   process.stderr.write(
     `[yt-dlp error] ${fnName} failed for URL: ${url} (ExitCode: ${exitCode})\n[yt-dlp stderr]: ${stderrDetails}\n`,
   );
@@ -123,6 +136,11 @@ const executeWithFallback = async (fnName, targetUrl, flags, execAction) => {
 };
 
 const fetchVideoInfo = async (url) => {
+  const cached = videoInfoCache.get(url);
+  if (cached) {
+    return cached;
+  }
+
   const targetUrl = await prepareTargetUrl(url);
   const flags = applyCommonFlags(targetUrl, {
     dumpJson: true,
@@ -139,14 +157,95 @@ const fetchVideoInfo = async (url) => {
     ];
   }
 
-  return executeWithFallback("fetchVideoInfo", targetUrl, flags, (runFlags) => {
+  const result = await executeWithFallback("fetchVideoInfo", targetUrl, flags, (runFlags) => {
     const ytdlpExec = getYtdlpInstance();
     return ytdlpExec(targetUrl, runFlags);
+  });
+
+  videoInfoCache.set(url, result);
+  return result;
+};
+
+const getHttpStream = (streamUrl, maxRedirects = 5) => {
+  return new Promise((resolve, reject) => {
+    const parsed = new URL(streamUrl);
+    const client = parsed.protocol === "http:" ? http : https;
+
+    const req = client.get(
+      streamUrl,
+      {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+          Accept: "*/*",
+          Connection: "keep-alive",
+        },
+        timeout: 30000,
+      },
+      (res) => {
+        if (
+          res.statusCode >= 300 &&
+          res.statusCode < 400 &&
+          res.headers.location &&
+          maxRedirects > 0
+        ) {
+          resolve(getHttpStream(res.headers.location, maxRedirects - 1));
+        } else if (res.statusCode >= 400) {
+          reject(new Error(`Stream HTTP Error ${res.statusCode}`));
+        } else {
+          resolve(res);
+        }
+      }
+    );
+
+    req.on("error", reject);
+    req.on("timeout", () =>
+      req.destroy(new Error("Connection timed out while downloading video stream."))
+    );
   });
 };
 
 const downloadVideo = async (url, formatId, type) => {
   const targetUrl = await prepareTargetUrl(url);
+
+  // Fast-path: If a direct progressive MP4 stream (audio + video muxed) is cached, stream directly over HTTP
+  if (type !== "mute" && type !== "audio") {
+    const cached = videoInfoCache.get(url);
+    if (cached && Array.isArray(cached.formats)) {
+      const matched = formatId
+        ? cached.formats.find(
+            (f) =>
+              String(f.format_id) === String(formatId) ||
+              String(f.formatId) === String(formatId)
+          )
+        : null;
+
+      const directCandidate =
+        matched ||
+        cached.formats.find(
+          (f) => f.vcodec !== "none" && f.acodec !== "none" && f.url
+        );
+
+      if (
+        directCandidate &&
+        directCandidate.url &&
+        directCandidate.vcodec !== "none" &&
+        directCandidate.acodec !== "none"
+      ) {
+        try {
+          process.stdout.write(
+            `[ytdlpService] Fast-path direct stream for ${targetUrl}\n`
+          );
+          return await getHttpStream(directCandidate.url);
+        } catch (err) {
+          process.stdout.write(
+            `[ytdlpService] Fast-path stream failed, falling back to disk buffer: ${err.message}\n`
+          );
+        }
+      }
+    }
+  }
+
   let formatArg = formatId ? `${formatId}+bestaudio/best` : "best";
 
   if (type === "mute") {

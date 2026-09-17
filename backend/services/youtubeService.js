@@ -2,6 +2,7 @@ import http from 'http';
 import https from 'https';
 import { URL } from 'url';
 import * as ytdlpService from './ytdlpService.js';
+import { videoInfoCache } from '../utils/cache.js';
 
 const INVIDIOUS_INSTANCES = [
   'https://invidious.f5.si',
@@ -56,6 +57,11 @@ const fetchFromInstance = async (baseUrl, videoId, maxRetries = 2) => {
 };
 
 export const fetchVideoInfo = async (url) => {
+  const cached = videoInfoCache.get(url);
+  if (cached) {
+    return cached;
+  }
+
   const videoId = extractYouTubeId(url);
 
   if (!videoId) {
@@ -112,7 +118,7 @@ export const fetchVideoInfo = async (url) => {
       (f) => String(f.itag) === '140' || (f.type || '').startsWith('audio/mp4') || f.container === 'm4a'
     );
 
-    return {
+    const result = {
       title: data.title,
       thumbnail: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
       duration: data.lengthSeconds,
@@ -120,6 +126,9 @@ export const fetchVideoInfo = async (url) => {
       adaptiveFormats,
       audioUrl: audioStream?.url || null,
     };
+
+    videoInfoCache.set(url, result);
+    return result;
   } catch (err) {
     process.stdout.write(`[youtubeService] Invidious pool failed, falling back to yt-dlp: ${err.message}\n`);
     return ytdlpService.fetchVideoInfo(url);

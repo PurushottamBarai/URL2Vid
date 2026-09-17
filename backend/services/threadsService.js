@@ -1,5 +1,6 @@
 import https from 'https';
 import { GOOGLEBOT_HEADERS, REQUEST_HEADERS as BROWSER_HEADERS, DUMMY_FORMAT, fetchContentLength } from '../utils/constants.js';
+import { videoInfoCache } from '../utils/cache.js';
 
 const normalizeThreadsUrl = (url) => {
   return url
@@ -65,6 +66,11 @@ const extractTitleFromHtml = (html) => {
 };
 
 export const fetchVideoInfo = async (url) => {
+  const cached = videoInfoCache.get(url);
+  if (cached) {
+    return cached;
+  }
+
   const normalizedUrl = normalizeThreadsUrl(url);
   let html = '';
 
@@ -104,12 +110,15 @@ export const fetchVideoInfo = async (url) => {
   }
   const filesize = await fetchContentLength(videoUrl, BROWSER_HEADERS);
 
-  return {
+  const result = {
     title,
     thumbnail,
     duration,
     formats: [{ ...DUMMY_FORMAT, url: videoUrl, filesize }],
   };
+
+  videoInfoCache.set(url, result);
+  return result;
 };
 
 export const downloadVideo = async (url) => {
