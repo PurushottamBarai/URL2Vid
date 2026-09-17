@@ -91,6 +91,7 @@ app.use(helmet({
     directives: {
       'img-src': ["'self'", 'https:', 'data:', 'blob:'],
       'media-src': ["'self'", 'https:', 'data:', 'blob:'],
+      'frame-src': ["'self'", 'https://www.youtube.com', 'https://www.youtube-nocookie.com'],
     },
   },
   crossOriginEmbedderPolicy: false,
