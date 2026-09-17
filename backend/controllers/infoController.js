@@ -4,6 +4,7 @@ import * as snapchatService from '../services/snapchatService.js';
 import * as pinterestService from '../services/pinterestService.js';
 import * as threadsService from '../services/threadsService.js';
 import * as linkedinService from '../services/linkedinService.js';
+import * as ffmpegService from '../services/ffmpegService.js';
 import { processVideoFormats } from '../utils/formatHelpers.js';
 import { detectPlatform } from '../utils/platformDetector.js';
 
@@ -27,8 +28,10 @@ const resolveVideoInfo = async (platform, url) => {
       );
     default:
       return ytdlpService.fetchVideoInfo(url).catch((err) => {
-        if (err.message && (err.message.includes('[youtube]') || err.message.includes('youtube.com') || err.message.includes('youtu.be'))) {
-          return youtubeService.fetchVideoInfo(url);
+        const fullErr = `${err.stderr || ''} ${err.message || ''} ${err.shortMessage || ''}`;
+        const ytIdMatch = fullErr.match(/\[youtube\]\s+([a-zA-Z0-9_-]{11})/i);
+        if (ytIdMatch && ytIdMatch[1]) {
+          return youtubeService.fetchVideoInfo(`https://www.youtube.com/watch?v=${ytIdMatch[1]}`);
         }
         throw err;
       });
@@ -41,7 +44,17 @@ const getInfo = async (req, res, next) => {
   try {
     const platform = detectPlatform(url);
     const info = await resolveVideoInfo(platform, url);
-    const availableFormats = processVideoFormats(info.formats);
+
+    if ((info.duration === null || info.duration === undefined || info.duration <= 0) && info.formats?.[0]?.url) {
+      try {
+        const probed = await ffmpegService.probeDuration(info.formats[0].url);
+        if (probed && probed > 0) {
+          info.duration = probed;
+        }
+      } catch {}
+    }
+
+    const availableFormats = processVideoFormats(info.formats, info.duration);
 
     res.status(200).json({
       title: info.title,

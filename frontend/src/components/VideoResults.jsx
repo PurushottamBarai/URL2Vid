@@ -1,93 +1,115 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { ChevronDown } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 
 const formatDuration = (sec) => {
-  if (!sec) return 'Unknown length';
-  return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+  if (!sec || isNaN(sec) || sec <= 0) return null;
+  const s = Math.round(sec);
+  const hrs = Math.floor(s / 3600);
+  const mins = Math.floor((s % 3600) / 60);
+  const secs = s % 60;
+  if (hrs > 0) {
+    return `${hrs}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  }
+  return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 };
 
 const formatBytes = (bytes) => {
-  if (!bytes || isNaN(bytes)) return null;
-  return `${(bytes / 1048576).toFixed(1)}MB`;
-};
-
-const getEstimatedAudioSize = (durationSec) => {
-  if (!durationSec || durationSec <= 0) return null;
-  return `~${((durationSec * 128 * 1000) / (8 * 1048576)).toFixed(1)}MB`;
-};
-
-const formatLabel = (fmt, durationSec) => {
-  let size = '';
-  if (fmt.filesize) {
-    size = ` — ${formatBytes(fmt.filesize)}`;
-  } else if (!fmt.hasVideo && durationSec) {
-    const est = getEstimatedAudioSize(durationSec);
-    if (est) size = ` — ${est}`;
+  if (!bytes || isNaN(bytes) || bytes <= 0) return null;
+  const mb = bytes / 1048576;
+  if (mb < 0.1) {
+    return `${Math.round(bytes / 1024)} KB`;
   }
-  return `${fmt.resolution || 'Unknown'} ${fmt.ext ? `(.${fmt.ext})` : ''}${size}`;
+  return `${mb.toFixed(1)} MB`;
+};
+
+const AUDIO_TIERS = [
+  { id: '192k', label: 'Best Audio (192 kbps MP3)', kbps: 192 },
+  { id: '320k', label: 'High Quality (320 kbps MP3)', kbps: 320 },
+  { id: '128k', label: 'Standard Quality (128 kbps MP3)', kbps: 128 },
+  { id: '96k', label: 'Compact Quality (96 kbps MP3)', kbps: 96 },
+];
+
+const getAudioTierSize = (tier, duration, fallbackVideoSize) => {
+  if (duration && duration > 0) {
+    return Math.round((duration * tier.kbps * 1000) / 8);
+  }
+  if (fallbackVideoSize && fallbackVideoSize > 0) {
+    return Math.round(fallbackVideoSize * 0.16 * (tier.kbps / 192));
+  }
+  return null;
+};
+
+const formatLabel = (fmt, durationSec, topFilesize) => {
+  let sizeBytes = fmt.filesize;
+  if (!sizeBytes && durationSec && fmt.tbr) {
+    sizeBytes = Math.round((fmt.tbr * 1000 * durationSec) / 8);
+  }
+  if (!sizeBytes && topFilesize) {
+    sizeBytes = topFilesize;
+  }
+  const sizeStr = formatBytes(sizeBytes);
+  return `${fmt.resolution || 'Unknown'} ${fmt.ext ? `(.${fmt.ext})` : ''}${sizeStr ? ` • ${sizeStr}` : ''}`;
 };
 
 const VideoResults = React.memo(({ data, originalUrl, initialFormat = 'video' }) => {
-  const [selectedFormat, setSelectedFormat] = useState(initialFormat || 'best');
+  const isAudio = initialFormat === 'audio';
+  const [selectedFormat, setSelectedFormat] = useState(isAudio ? '192k' : 'best');
+
+  useEffect(() => {
+    setSelectedFormat(isAudio ? '192k' : 'best');
+  }, [isAudio]);
 
   if (!data) return null;
 
-  const availableFormats = useMemo(() => {
-    if (!data.formats) return [];
-    return data.formats.filter((fmt) =>
-      initialFormat === 'audio' ? !fmt.hasVideo : fmt.hasVideo
-    );
-  }, [data.formats, initialFormat]);
+  const topVideoFormat = useMemo(() => {
+    if (!data.formats || !Array.isArray(data.formats)) return null;
+    return data.formats.find((f) => f.filesize && f.hasVideo) || data.formats[0];
+  }, [data.formats]);
 
-  const defaultOptionLabel = useMemo(() => {
-    if (initialFormat === 'audio') {
-      const audioWithFilesize = availableFormats.find((f) => f.filesize);
-      const sizeStr = audioWithFilesize
-        ? ` — ${formatBytes(audioWithFilesize.filesize)}`
-        : data.duration
-          ? ` — ${getEstimatedAudioSize(data.duration)}`
-          : '';
-      return `Best Audio (MP3)${sizeStr}`;
-    }
+  const availableVideoFormats = useMemo(() => {
+    if (!data.formats || !Array.isArray(data.formats)) return [];
+    return data.formats.filter((fmt) => fmt.hasVideo !== false);
+  }, [data.formats]);
 
-    const videoWithFilesize = availableFormats.find((f) => f.filesize);
-    const sizeStr = videoWithFilesize ? ` — ${formatBytes(videoWithFilesize.filesize)}` : '';
+  const formattedDuration = useMemo(() => formatDuration(data.duration), [data.duration]);
+
+  const audioOptions = useMemo(() => {
+    const fallbackSize = topVideoFormat?.filesize || null;
+    return AUDIO_TIERS.map((tier) => {
+      const bytes = getAudioTierSize(tier, data.duration, fallbackSize);
+      const sizeStr = formatBytes(bytes);
+      return {
+        ...tier,
+        bytes,
+        sizeStr,
+        displayLabel: `${tier.label}${sizeStr ? ` • ${sizeStr}` : ''}`,
+      };
+    });
+  }, [data.duration, topVideoFormat]);
+
+  const defaultVideoOptionLabel = useMemo(() => {
+    const topSize = topVideoFormat?.filesize;
+    const sizeStr = topSize ? formatBytes(topSize) : '';
+    const metaStr = sizeStr ? ` • ${sizeStr}` : '';
 
     if (initialFormat === 'mute') {
-      return `Best Video (No Sound)${sizeStr}`;
+      return `Best Video (No Sound)${metaStr}`;
     }
-    return `Best Video (MP4)${sizeStr}`;
-  }, [initialFormat, availableFormats, data.duration]);
+    return `Best Video (MP4)${metaStr}`;
+  }, [initialFormat, topVideoFormat]);
 
-  const currentSelectedSize = useMemo(() => {
-    if (selectedFormat === 'best' || selectedFormat === initialFormat) {
-      if (initialFormat === 'audio') {
-        const audioWithFilesize = availableFormats.find((f) => f.filesize);
-        if (audioWithFilesize) return formatBytes(audioWithFilesize.filesize);
-        if (data.duration) return getEstimatedAudioSize(data.duration);
-        return null;
-      }
-      const topFmt = availableFormats.find((f) => f.filesize);
-      return topFmt ? formatBytes(topFmt.filesize) : null;
-    }
-
-    const selected = availableFormats.find((f) => String(f.formatId) === String(selectedFormat));
-    if (selected?.filesize) {
-      return formatBytes(selected.filesize);
-    }
-    if (!selected?.hasVideo && data.duration) {
-      return getEstimatedAudioSize(data.duration);
-    }
-    return null;
-  }, [selectedFormat, initialFormat, availableFormats, data.duration]);
 
   const handleDownload = () => {
     const url = new URL(`${API_BASE_URL}/download`, window.location.origin);
     url.searchParams.set('url', originalUrl);
     url.searchParams.set('type', initialFormat || 'video');
-    if (selectedFormat !== 'best') {
+
+    if (isAudio) {
+      const bitrate = selectedFormat === 'best' ? '192k' : selectedFormat;
+      url.searchParams.set('bitrate', bitrate);
+    } else if (selectedFormat !== 'best' && selectedFormat !== initialFormat) {
       url.searchParams.set('formatId', selectedFormat);
     }
 
@@ -117,7 +139,7 @@ const VideoResults = React.memo(({ data, originalUrl, initialFormat = 'video' })
               {data.title || 'Extracted Video'}
             </h2>
             <p className="text-text-secondary font-mono text-sm">
-              {formatDuration(data.duration)}
+              {formattedDuration || 'Unknown length'}
             </p>
           </div>
 
@@ -127,20 +149,30 @@ const VideoResults = React.memo(({ data, originalUrl, initialFormat = 'video' })
                 value={selectedFormat}
                 onChange={(e) => setSelectedFormat(e.target.value)}
                 className="w-full appearance-none bg-surface border border-border text-text-primary rounded-md px-4 py-3 pr-10 focus:outline-none focus:border-accent font-mono text-sm cursor-pointer shadow-none"
-                aria-label="Select format"
+                aria-label="Select quality and format"
               >
-                <option value={initialFormat || 'best'} className="bg-surface">
-                  {defaultOptionLabel}
-                </option>
-                {availableFormats.map((fmt, idx) => (
-                  <option
-                    key={fmt.formatId || fmt.url || `${fmt.resolution}-${fmt.ext}-${idx}`}
-                    value={fmt.formatId}
-                    className="bg-surface"
-                  >
-                    {formatLabel(fmt, data.duration)}
-                  </option>
-                ))}
+                {isAudio ? (
+                  audioOptions.map((opt) => (
+                    <option key={opt.id} value={opt.id} className="bg-surface">
+                      {opt.displayLabel}
+                    </option>
+                  ))
+                ) : (
+                  <>
+                    <option value="best" className="bg-surface">
+                      {defaultVideoOptionLabel}
+                    </option>
+                    {availableVideoFormats.map((fmt, idx) => (
+                      <option
+                        key={fmt.formatId || fmt.url || `${fmt.resolution}-${fmt.ext}-${idx}`}
+                        value={fmt.formatId}
+                        className="bg-surface"
+                      >
+                        {formatLabel(fmt, data.duration, topVideoFormat?.filesize)}
+                      </option>
+                    ))}
+                  </>
+                )}
               </select>
               <ChevronDown className="absolute right-3 top-4 w-4 h-4 text-text-secondary pointer-events-none" />
             </div>
@@ -149,12 +181,7 @@ const VideoResults = React.memo(({ data, originalUrl, initialFormat = 'video' })
               onClick={handleDownload}
               className="w-full py-4 text-lg rounded-md font-bold transition-colors border border-accent text-accent hover:bg-accent/10 focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-base outline-none active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
             >
-              <span>Download file</span>
-              {currentSelectedSize && (
-                <span className="text-sm font-mono opacity-80 font-normal">
-                  ({currentSelectedSize})
-                </span>
-              )}
+              Download file
             </button>
           </div>
         </div>

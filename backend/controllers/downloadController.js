@@ -30,8 +30,10 @@ const resolveMediaStream = async (platform, url, formatId, type) => {
       );
     default:
       return ytdlpService.downloadVideo(url, formatId, type).catch((err) => {
-        if (err.message && (err.message.includes('[youtube]') || err.message.includes('youtube.com') || err.message.includes('youtu.be'))) {
-          return youtubeService.downloadVideo(url, formatId, type);
+        const fullErr = `${err.stderr || ''} ${err.message || ''} ${err.shortMessage || ''}`;
+        const ytIdMatch = fullErr.match(/\[youtube\]\s+([a-zA-Z0-9_-]{11})/i);
+        if (ytIdMatch && ytIdMatch[1]) {
+          return youtubeService.downloadVideo(`https://www.youtube.com/watch?v=${ytIdMatch[1]}`, formatId, type);
         }
         throw err;
       });
@@ -39,7 +41,7 @@ const resolveMediaStream = async (platform, url, formatId, type) => {
 };
 
 const downloadMedia = async (req, res, next) => {
-  const { url, formatId, type } = req.query;
+  const { url, formatId, type, bitrate } = req.query;
 
   if (formatId && !FORMAT_ID_PATTERN.test(formatId)) {
     return res.status(400).json({ error: 'Invalid formatId provided.' });
@@ -66,7 +68,14 @@ const downloadMedia = async (req, res, next) => {
 
     if (isAudio) {
       const conversionSource = mediaStream.tempFilePath || mediaStream;
-      ffmpegService.convertToMp3(conversionSource, res);
+      ffmpegService.convertToMp3(conversionSource, res, bitrate);
+      res.on('error', cleanup);
+      return;
+    }
+
+    if (type === 'mute') {
+      const conversionSource = mediaStream.tempFilePath || mediaStream;
+      ffmpegService.muteVideo(conversionSource, res);
       res.on('error', cleanup);
       return;
     }

@@ -1,5 +1,5 @@
 import https from 'https';
-import { REQUEST_HEADERS, DUMMY_FORMAT } from '../utils/constants.js';
+import { REQUEST_HEADERS, DUMMY_FORMAT, fetchContentLength } from '../utils/constants.js';
 
 const fetchPageHtml = async (url) => {
   const response = await fetch(url, { headers: REQUEST_HEADERS });
@@ -24,11 +24,15 @@ export const fetchVideoInfo = async (url) => {
   const title = titleMatch ? titleMatch[1].replace(/&amp;/g, '&').replace(/&#x27;/g, "'") : 'Snapchat Spotlight Video';
   const thumbnail = thumbnailMatch ? thumbnailMatch[1].replace(/&amp;/g, '&') : null;
 
+  const durMatch = html.match(/"durationMs"\s*:\s*"?(\d+)"?/i);
+  const duration = durMatch ? Math.round(parseInt(durMatch[1], 10) / 1000) : null;
+  const filesize = await fetchContentLength(videoUrl, REQUEST_HEADERS);
+
   return {
     title,
     thumbnail,
-    duration: null,
-    formats: [{ ...DUMMY_FORMAT, url: videoUrl }],
+    duration,
+    formats: [{ ...DUMMY_FORMAT, url: videoUrl, filesize }],
   };
 };
 

@@ -1,5 +1,5 @@
 import https from 'https';
-import { DUMMY_FORMAT, LINKEDIN_CRAWLER_AGENTS as CRAWLER_USER_AGENTS, makeHeaders } from '../utils/constants.js';
+import { DUMMY_FORMAT, LINKEDIN_CRAWLER_AGENTS as CRAWLER_USER_AGENTS, makeHeaders, fetchContentLength } from '../utils/constants.js';
 
 const resolveShortUrl = async (url) => {
   if (!url.includes('lnkd.in')) return url;
@@ -61,11 +61,19 @@ export const fetchVideoInfo = async (url) => {
       const titleMatch = html.match(/<meta[^>]*property="og:title"[^>]*content="([^"]+)"/);
       const thumbnailMatch = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]+)"/);
 
+      const durMatch = html.match(/"duration"\s*:\s*([0-9.]+)/i);
+      let duration = null;
+      if (durMatch) {
+        const val = parseFloat(durMatch[1]);
+        duration = val > 100 ? Math.round(val / 1000) : Math.round(val);
+      }
+      const filesize = await fetchContentLength(videoUrl, makeHeaders(ua));
+
       return {
         title: titleMatch ? titleMatch[1].replace(/&amp;/g, '&') : 'LinkedIn Video',
         thumbnail: thumbnailMatch ? thumbnailMatch[1].replace(/&amp;/g, '&') : null,
-        duration: null,
-        formats: [{ ...DUMMY_FORMAT, url: videoUrl }],
+        duration,
+        formats: [{ ...DUMMY_FORMAT, url: videoUrl, filesize }],
       };
     } catch {
       continue;

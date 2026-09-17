@@ -1,6 +1,6 @@
 import https from 'https';
 import http from 'http';
-import { REQUEST_HEADERS, DUMMY_FORMAT } from '../utils/constants.js';
+import { REQUEST_HEADERS, DUMMY_FORMAT, fetchContentLength } from '../utils/constants.js';
 
 const normalizePinterestUrl = (url) => {
   const ideasMatch = url.match(/pinterest\.com\/ideas\/[^/]+\/(\d{10,})\/?/);
@@ -55,11 +55,15 @@ export const fetchVideoInfo = async (url) => {
   const title = titleMatch ? titleMatch[1].replace(/&amp;/g, '&').replace(/&#x27;/g, "'") : 'Pinterest Video';
   const thumbnail = thumbnailMatch ? thumbnailMatch[1].replace(/&amp;/g, '&') : null;
 
+  const durMatch = html.match(/"duration"\s*:\s*(\d+)/i);
+  const duration = durMatch ? Math.round(parseInt(durMatch[1], 10) / 1000) : null;
+  const filesize = await fetchContentLength(videoUrl, REQUEST_HEADERS);
+
   return {
     title,
     thumbnail,
-    duration: null,
-    formats: [{ ...DUMMY_FORMAT, url: videoUrl }],
+    duration,
+    formats: [{ ...DUMMY_FORMAT, url: videoUrl, filesize }],
   };
 };
 

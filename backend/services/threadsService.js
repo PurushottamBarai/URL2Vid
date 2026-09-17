@@ -1,5 +1,5 @@
 import https from 'https';
-import { GOOGLEBOT_HEADERS, REQUEST_HEADERS as BROWSER_HEADERS, DUMMY_FORMAT } from '../utils/constants.js';
+import { GOOGLEBOT_HEADERS, REQUEST_HEADERS as BROWSER_HEADERS, DUMMY_FORMAT, fetchContentLength } from '../utils/constants.js';
 
 const normalizeThreadsUrl = (url) => {
   return url
@@ -85,11 +85,19 @@ export const fetchVideoInfo = async (url) => {
     );
   }
 
+  const durMatch = html.match(/"video_duration"\s*:\s*([0-9.]+)/i) || html.match(/"duration"\s*:\s*([0-9.]+)/i);
+  let duration = null;
+  if (durMatch) {
+    const val = parseFloat(durMatch[1]);
+    duration = val > 100 ? Math.round(val / 1000) : Math.round(val);
+  }
+  const filesize = await fetchContentLength(videoUrl, BROWSER_HEADERS);
+
   return {
     title,
     thumbnail,
-    duration: null,
-    formats: [{ ...DUMMY_FORMAT, url: videoUrl }],
+    duration,
+    formats: [{ ...DUMMY_FORMAT, url: videoUrl, filesize }],
   };
 };
 

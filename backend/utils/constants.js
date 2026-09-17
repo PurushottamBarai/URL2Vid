@@ -30,3 +30,21 @@ export const DUMMY_FORMAT = {
   vcodec: 'avc1.4d401e',
   resolution: 'best',
 };
+
+export const fetchContentLength = async (url, headers = {}) => {
+  if (!url || typeof url !== 'string') return null;
+  try {
+    const res = await fetch(url, {
+      method: 'HEAD',
+      headers,
+      signal: AbortSignal.timeout(3000),
+    });
+    const len = res.headers.get('content-length');
+    if (len) {
+      const parsed = parseInt(len, 10);
+      if (!isNaN(parsed) && parsed > 0) return parsed;
+    }
+  } catch {}
+  return null;
+};
+

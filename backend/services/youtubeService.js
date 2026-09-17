@@ -62,7 +62,11 @@ export const fetchVideoInfo = async (url) => {
       vcodec: s.encoding || 'h264',
       acodec: 'mp4a.40.2',
       url: s.url,
-      filesize: s.bitrate && data.lengthSeconds ? Math.round((s.bitrate * data.lengthSeconds) / 8) : null,
+      filesize: s.clen
+        ? parseInt(s.clen, 10)
+        : s.bitrate && data.lengthSeconds
+          ? Math.round((parseInt(s.bitrate, 10) * data.lengthSeconds) / 8)
+          : null,
     }));
 
     if (formats.length === 0 && formatStreams.length > 0) {
@@ -78,9 +82,7 @@ export const fetchVideoInfo = async (url) => {
 
     return {
       title: data.title,
-      thumbnail:
-        data.videoThumbnails?.[0]?.url ||
-        `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+      thumbnail: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
       duration: data.lengthSeconds,
       formats,
     };
