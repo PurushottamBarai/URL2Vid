@@ -43,12 +43,23 @@ const extractVideoFromHtml = (html) => {
   return null;
 };
 
+const decodeHtmlEntities = (str) => {
+  if (!str) return str;
+  return str
+    .replace(/&amp;/g, '&')
+    .replace(/&#0*64;/g, '@')
+    .replace(/&#x27;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>');
+};
+
 const extractTitleFromHtml = (html) => {
   const ogTitle = html.match(/<meta[^>]*property="og:title"[^>]*content="([^"]+)"/);
-  if (ogTitle) return ogTitle[1].replace(/&amp;/g, '&').replace(/&#x27;/g, "'");
+  if (ogTitle) return decodeHtmlEntities(ogTitle[1]);
 
   const postText = html.match(/"text"\s*:\s*"([^"]{5,200})"/);
-  if (postText) return postText[1].replace(/\\n/g, ' ').replace(/\\"/g, '"');
+  if (postText) return decodeHtmlEntities(postText[1].replace(/\\n/g, ' ').replace(/\\"/g, '"'));
 
   return 'Threads Video';
 };

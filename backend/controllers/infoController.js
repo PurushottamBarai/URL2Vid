@@ -61,7 +61,9 @@ const getInfo = async (req, res, next) => {
       thumbnail: info.thumbnail,
       duration: info.duration,
       formats: availableFormats,
-      audioAvailable: Array.isArray(info.formats) && info.formats.some((f) => f.acodec !== 'none'),
+      audioAvailable:
+        (Array.isArray(info.formats) && info.formats.some((f) => f.acodec !== 'none')) ||
+        Boolean(info.audioUrl),
     });
   } catch (error) {
     next(error);
