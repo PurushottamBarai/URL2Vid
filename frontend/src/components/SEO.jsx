@@ -12,20 +12,30 @@ const setMetaTag = (attr, name, content) => {
   el.setAttribute('content', content);
 };
 
-const SEO = ({ title, description, schema }) => {
+const SEO = ({ title, description, schema, canonicalPath }) => {
   useEffect(() => {
     if (title) document.title = title;
 
     setMetaTag('name', 'description', description);
     setMetaTag('property', 'og:title', title);
     setMetaTag('property', 'og:description', description);
+    setMetaTag('property', 'og:image', 'https://url2vid.codedeck.me/logo.png');
     setMetaTag('name', 'twitter:title', title);
     setMetaTag('name', 'twitter:description', description);
+    setMetaTag('name', 'twitter:image', 'https://url2vid.codedeck.me/logo.png');
 
-    const canonical = document.querySelector('link[rel="canonical"]');
-    if (canonical) {
-      canonical.href = window.location.href.split('?')[0];
+    const path = canonicalPath || (typeof window !== 'undefined' ? window.location.pathname : '/');
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    const canonicalUrl = `https://url2vid.codedeck.me${cleanPath === '/' ? '/' : cleanPath}`;
+
+    let canonical = document.querySelector('link[rel="canonical"]');
+    if (!canonical) {
+      canonical = document.createElement('link');
+      canonical.setAttribute('rel', 'canonical');
+      document.head.appendChild(canonical);
     }
+    canonical.setAttribute('href', canonicalUrl);
+    setMetaTag('property', 'og:url', canonicalUrl);
 
     document.getElementById('dynamic-schema')?.remove();
 
@@ -38,7 +48,7 @@ const SEO = ({ title, description, schema }) => {
     }
 
     return () => document.getElementById('dynamic-schema')?.remove();
-  }, [title, description, schema]);
+  }, [title, description, schema, canonicalPath]);
 
   return null;
 };
@@ -46,7 +56,8 @@ const SEO = ({ title, description, schema }) => {
 SEO.propTypes = {
   title: PropTypes.string.isRequired,
   description: PropTypes.string.isRequired,
-  schema: PropTypes.object,
+  schema: PropTypes.oneOfType([PropTypes.object, PropTypes.array]),
+  canonicalPath: PropTypes.string,
 };
 
 export default SEO;

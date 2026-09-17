@@ -10,7 +10,7 @@ const __dirname = path.dirname(__filename);
 
 const PORT = 54321;
 const DIST_DIR = path.resolve(__dirname, 'dist');
-const routes = ['/', '/404', ...platformsData.map((p) => p.path)];
+const routes = ['/', '/404', '/user-guide', ...platformsData.map((p) => p.path)];
 
 async function prerender() {
   console.log(`Starting prerendering for ${routes.length} routes...`);
@@ -33,7 +33,11 @@ async function prerender() {
       await page.goto(`http://localhost:${PORT}${route}`, { waitUntil: 'networkidle0', timeout: 30000 });
       await new Promise((resolve) => setTimeout(resolve, 300));
 
-      const html = await page.evaluate(() => '<!DOCTYPE html>\n' + document.documentElement.outerHTML);
+      let html = await page.evaluate(() => '<!DOCTYPE html>\n' + document.documentElement.outerHTML);
+      const canonicalUrl = `https://url2vid.codedeck.me${route === '/' ? '/' : route}`;
+      html = html.replace(/<link rel="canonical" href="[^"]*"/, `<link rel="canonical" href="${canonicalUrl}"`);
+      html = html.replace(/<meta property="og:url" content="[^"]*"/, `<meta property="og:url" content="${canonicalUrl}"`);
+      html = html.replaceAll('https://url2vid.onrender.com', 'https://url2vid.codedeck.me');
 
       const outputPath = route === '/'
         ? path.join(DIST_DIR, 'index.html')

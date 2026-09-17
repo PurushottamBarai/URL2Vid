@@ -8,6 +8,7 @@ import { platformsData } from './data/platforms';
 const Home = lazy(() => import('./pages/Home'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const PlatformLanding = lazy(() => import('./pages/PlatformLanding'));
+const UserGuide = lazy(() => import('./pages/UserGuide'));
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -43,6 +44,8 @@ const App = () => {
               />
             ))}
             
+            <Route path="/user-guide" element={<UserGuide />} />
+            <Route path="/guide" element={<Navigate to="/user-guide" replace />} />
             <Route path="/x-video-downloader" element={<Navigate to="/twitter-video-downloader" replace />} />
             
             <Route path="*" element={<NotFound />} />

@@ -109,6 +109,13 @@ const Navbar = () => {
             Features
           </button>
 
+          <Link
+            to="/user-guide"
+            className="px-3 py-1.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface transition-colors"
+          >
+            Video Guide
+          </Link>
+
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setIsPlatformsOpen(!isPlatformsOpen)}
@@ -198,6 +205,14 @@ const Navbar = () => {
           >
             Features
           </button>
+
+          <Link
+            to="/user-guide"
+            onClick={() => setIsMenuOpen(false)}
+            className="w-full text-left px-3 py-2 rounded-lg text-sm text-text-secondary hover:text-text-primary hover:bg-surface block"
+          >
+            Video Guide
+          </Link>
 
           <div className="py-2 border-t border-b border-border/60 my-1">
             <span className="text-xs font-semibold text-text-secondary px-3 uppercase tracking-wider block mb-2">

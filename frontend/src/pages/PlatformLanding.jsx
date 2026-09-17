@@ -10,9 +10,11 @@ import { ChevronDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const PlatformLanding = ({ 
+  path,
   platformName, 
   h1, 
   intro, 
+  description,
   steps, 
   faqs, 
   metaTitle, 
@@ -70,6 +72,7 @@ const PlatformLanding = ({
         title={metaTitle} 
         description={metaDescription} 
         schema={combinedSchema} 
+        canonicalPath={path}
       />
 
       <div className="w-full max-w-2xl mx-auto">
@@ -87,7 +90,12 @@ const PlatformLanding = ({
       </div>
 
       <section className="w-full max-w-4xl mx-auto py-12 px-4 border-t border-border mt-8">
-        <h2 className="text-3xl font-bold text-text-primary text-center mb-10">How to download from {platformName}</h2>
+        <h2 className="text-3xl font-bold text-text-primary text-center mb-6">How to download from {platformName}</h2>
+        {description && (
+          <div className="bg-surface border border-border rounded-xl p-6 sm:p-7 mb-10 text-text-secondary text-sm sm:text-base leading-relaxed shadow-sm">
+            <p className="text-text-primary/90">{description}</p>
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {steps.map((step, index) => (
             <div key={step.title} className="flex flex-col items-center text-center p-6 bg-surface rounded-lg border border-border">
@@ -148,6 +156,7 @@ PlatformLanding.propTypes = {
   platformName: PropTypes.string.isRequired,
   h1: PropTypes.string.isRequired,
   intro: PropTypes.string.isRequired,
+  description: PropTypes.string,
   steps: PropTypes.arrayOf(PropTypes.shape({
     title: PropTypes.string.isRequired,
     desc: PropTypes.string.isRequired,

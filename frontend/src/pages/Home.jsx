@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useVideoExtraction } from '../hooks/useVideoExtraction';
 
 import Hero from '../components/Hero';
@@ -6,9 +6,15 @@ import VideoResults from '../components/VideoResults';
 import ErrorBanner from '../components/ErrorBanner';
 import LoadingSkeleton from '../components/LoadingSkeleton';
 import HowItWorks from '../components/HowItWorks';
+import VideoGuide from '../components/VideoGuide';
 import WhyChooseUs from '../components/WhyChooseUs';
 import SupportedPlatforms from '../components/SupportedPlatforms';
-import FAQ from '../components/FAQ';
+import FAQ, { homeFaqs } from '../components/FAQ';
+
+import SEO from '../components/SEO';
+
+const HOME_TITLE = 'URL2Vid: Download Videos from Any URL | Free Video Downloader';
+const HOME_DESCRIPTION = 'Free, fast online video downloader. Download videos from YouTube, Instagram, Facebook, Twitter (X), Reddit, and more simply by pasting the URL.';
 
 const Home = () => {
   const {
@@ -20,8 +26,45 @@ const Home = () => {
     handleFetchInfo,
   } = useVideoExtraction();
 
+  const homeSchema = useMemo(() => {
+    const webAppSchema = {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "URL2Vid",
+      "description": HOME_DESCRIPTION,
+      "applicationCategory": "MultimediaApplication",
+      "operatingSystem": "Any",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      }
+    };
+
+    const faqSchema = {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": homeFaqs.map((faq) => ({
+        "@type": "Question",
+        "name": faq.question,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": faq.answer
+        }
+      }))
+    };
+
+    return [webAppSchema, faqSchema];
+  }, []);
+
   return (
     <main className="flex-1 flex flex-col items-center justify-start pt-8 md:pt-14 px-4 w-full mx-auto">
+      <SEO 
+        title={HOME_TITLE} 
+        description={HOME_DESCRIPTION} 
+        schema={homeSchema}
+        canonicalPath="/" 
+      />
       <div className="w-full max-w-2xl mx-auto">
         <Hero onFetch={handleFetchInfo} isLoading={isLoading} />
         <ErrorBanner message={error} />
@@ -32,6 +75,7 @@ const Home = () => {
       </div>
 
       <HowItWorks />
+      <VideoGuide />
       <WhyChooseUs />
       <SupportedPlatforms />
       <FAQ />

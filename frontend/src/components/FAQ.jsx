@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 
-const faqs = [
+export const homeFaqs = [
   {
     question: 'Is URL2Vid free to use?',
     answer: 'Yes. URL2Vid is completely free — just paste a URL and download your video.'
@@ -44,7 +44,7 @@ const FAQ = () => {
       <h2 className="text-3xl font-bold text-text-primary text-center mb-10">Frequently Asked Questions</h2>
       
       <div className="flex flex-col gap-4">
-        {faqs.map((faq, index) => {
+        {homeFaqs.map((faq, index) => {
           const btnId = `faq-btn-${index}`;
           const panelId = `faq-panel-${index}`;
           const isOpen = openIndex === index;
