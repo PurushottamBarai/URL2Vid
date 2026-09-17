@@ -1,4 +1,5 @@
 import fs from 'fs';
+import * as youtubeService from '../services/youtubeService.js';
 import * as ytdlpService from '../services/ytdlpService.js';
 import * as snapchatService from '../services/snapchatService.js';
 import * as pinterestService from '../services/pinterestService.js';
@@ -11,6 +12,8 @@ const FORMAT_ID_PATTERN = /^[a-zA-Z0-9_-]+$/;
 
 const resolveMediaStream = async (platform, url, formatId, type) => {
   switch (platform) {
+    case 'youtube':
+      return youtubeService.downloadVideo(url, formatId, type);
     case 'snapchat':
       return snapchatService.downloadVideo(url, type);
     case 'pinterest':
@@ -26,7 +29,12 @@ const resolveMediaStream = async (platform, url, formatId, type) => {
         linkedinService.downloadVideo(url)
       );
     default:
-      return ytdlpService.downloadVideo(url, formatId, type);
+      return ytdlpService.downloadVideo(url, formatId, type).catch((err) => {
+        if (err.message && (err.message.includes('[youtube]') || err.message.includes('youtube.com') || err.message.includes('youtu.be'))) {
+          return youtubeService.downloadVideo(url, formatId, type);
+        }
+        throw err;
+      });
   }
 };
 

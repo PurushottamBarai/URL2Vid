@@ -1,3 +1,4 @@
+import * as youtubeService from '../services/youtubeService.js';
 import * as ytdlpService from '../services/ytdlpService.js';
 import * as snapchatService from '../services/snapchatService.js';
 import * as pinterestService from '../services/pinterestService.js';
@@ -8,6 +9,8 @@ import { detectPlatform } from '../utils/platformDetector.js';
 
 const resolveVideoInfo = async (platform, url) => {
   switch (platform) {
+    case 'youtube':
+      return youtubeService.fetchVideoInfo(url);
     case 'snapchat':
       return snapchatService.fetchVideoInfo(url);
     case 'pinterest':
@@ -23,7 +26,12 @@ const resolveVideoInfo = async (platform, url) => {
         linkedinService.fetchVideoInfo(url)
       );
     default:
-      return ytdlpService.fetchVideoInfo(url);
+      return ytdlpService.fetchVideoInfo(url).catch((err) => {
+        if (err.message && (err.message.includes('[youtube]') || err.message.includes('youtube.com') || err.message.includes('youtu.be'))) {
+          return youtubeService.fetchVideoInfo(url);
+        }
+        throw err;
+      });
   }
 };
 

@@ -22,20 +22,20 @@ const updateYtDlpBinary = async () => {
     const isWin = process.platform === 'win32';
     const assetName = isWin ? 'yt-dlp.exe' : 'yt-dlp';
     const targetPath = path.join(os.tmpdir(), assetName);
-    const stableUrl = `https://github.com/yt-dlp/yt-dlp/releases/latest/download/${assetName}`;
     const nightlyUrl = `https://github.com/yt-dlp/yt-dlp-nightly-builds/releases/latest/download/${assetName}`;
+    const stableUrl = `https://github.com/yt-dlp/yt-dlp/releases/latest/download/${assetName}`;
 
-    process.stdout.write(`[yt-dlp] Downloading latest binary to ${targetPath}...\n`);
+    process.stdout.write(`[yt-dlp] Downloading latest nightly binary to ${targetPath}...\n`);
 
-    let binaryRes = await fetch(stableUrl, {
+    let binaryRes = await fetch(nightlyUrl, {
       headers: { 'User-Agent': 'URL2Vid/1.0' },
       redirect: 'follow',
       signal: AbortSignal.timeout(60000),
     });
 
     if (!binaryRes.ok) {
-      process.stdout.write(`[yt-dlp] Stable build download returned HTTP ${binaryRes.status}, falling back to nightly...\n`);
-      binaryRes = await fetch(nightlyUrl, {
+      process.stdout.write(`[yt-dlp] Nightly build download returned HTTP ${binaryRes.status}, falling back to stable...\n`);
+      binaryRes = await fetch(stableUrl, {
         headers: { 'User-Agent': 'URL2Vid/1.0' },
         redirect: 'follow',
         signal: AbortSignal.timeout(60000),
@@ -97,6 +97,7 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
 }));
 
+app.set('trust proxy', 1);
 app.use(express.json({ limit: '10kb' }));
 app.use(rateLimiter);
 

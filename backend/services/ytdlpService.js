@@ -4,20 +4,14 @@ import fs from "fs";
 import os from "os";
 import { execFileSync } from "child_process";
 import { randomUUID } from "crypto";
-import { getProxy, reportFailure, getPoolSize } from "./proxyManager.js";
-
 const TEMP_DIR = path.join(os.tmpdir(), "video-downloads");
 
 const FACEBOOK_DOMAINS = ["facebook.com", "fb.watch"];
-const PROXIED_DOMAINS = ["youtube.com", "youtu.be", "reddit.com"];
 const REDDIT_SHORT_LINK_REGEX =
   /^(?:https?:\/\/)?(?:www\.|old\.)?reddit\.com\/r\/[^/]+\/s\/[a-zA-Z0-9]+/i;
 
 const isFacebookUrl = (url) =>
   typeof url === "string" && FACEBOOK_DOMAINS.some((d) => url.includes(d));
-
-const shouldProxyUrl = (url) =>
-  typeof url === "string" && PROXIED_DOMAINS.some((d) => url.includes(d));
 
 const normalizeYouTubeUrl = (url) => {
   if (!url || typeof url !== "string") return url;
@@ -47,13 +41,8 @@ const resolveRedditShortLink = async (urlString) => {
     return urlString;
   }
   try {
-    const proxy = getProxy();
     const nullDevice = process.platform === "win32" ? "NUL" : "/dev/null";
-    const args = ["-s", "-o", nullDevice, "-w", "%{url_effective}", "-L"];
-    if (proxy) {
-      args.push("--proxy", proxy);
-    }
-    args.push(urlString);
+    const args = ["-s", "-o", nullDevice, "-w", "%{url_effective}", "-L", urlString];
     const resolved = execFileSync("curl", args, {
       encoding: "utf8",
       timeout: 10000,
@@ -81,13 +70,8 @@ const resolveRedditShortLinkSync = (urlString) => {
     return urlString;
   }
   try {
-    const proxy = getProxy();
     const nullDevice = process.platform === "win32" ? "NUL" : "/dev/null";
-    const args = ["-s", "-o", nullDevice, "-w", "%{url_effective}", "-L"];
-    if (proxy) {
-      args.push("--proxy", proxy);
-    }
-    args.push(urlString);
+    const args = ["-s", "-o", nullDevice, "-w", "%{url_effective}", "-L", urlString];
     const resolved = execFileSync("curl", args, {
       encoding: "utf8",
       timeout: 10000,
@@ -113,21 +97,10 @@ const prepareTargetUrlSync = (url) =>
   normalizeYouTubeUrl(resolveRedditShortLinkSync(url));
 
 const applyCommonFlags = (targetUrl, baseFlags) => {
-  const flags = {
-    extractorArgs: "youtube:player_client=ios,android,tv,web",
+  return {
+    extractorArgs: "youtube:player_client=android_creator,android,ios",
     ...baseFlags,
   };
-
-  if (shouldProxyUrl(targetUrl)) {
-    const proxy = getProxy();
-    if (proxy) {
-      flags.proxy = proxy;
-      flags.socketTimeout = 45;
-      flags.retries = 3;
-    }
-  }
-
-  return flags;
 };
 
 const formatAndLogStderr = (fnName, url, error) => {
@@ -140,52 +113,12 @@ const formatAndLogStderr = (fnName, url, error) => {
   );
 };
 
-const executeWithFallback = async (fnName, targetUrl, initialFlags, execAction) => {
-  let flags = { ...initialFlags };
-  const needsProxy = shouldProxyUrl(targetUrl);
-  const poolSize = getPoolSize();
-  const maxProxyAttempts = needsProxy ? Math.max(1, Math.min(poolSize, 10)) : 1;
-  let attempts = 0;
-
-  while (attempts < maxProxyAttempts) {
-    try {
-      return await execAction(flags);
-    } catch (error) {
-      attempts++;
-      if (flags.proxy) {
-        const failedProxy = flags.proxy;
-        const errSnippet =
-          error.stderr || error.shortMessage || error.message || String(error);
-        const nextProxy = reportFailure(failedProxy, errSnippet.slice(0, 100));
-
-        if (
-          nextProxy &&
-          nextProxy !== failedProxy &&
-          attempts < maxProxyAttempts
-        ) {
-          process.stdout.write(
-            `[yt-dlp ${fnName}] Retrying ${targetUrl} with next rotated proxy (${attempts}/${maxProxyAttempts})...\n`,
-          );
-          flags.proxy = nextProxy;
-          continue;
-        }
-
-        if (!needsProxy) {
-          process.stdout.write(
-            `[yt-dlp ${fnName}] Retrying ${targetUrl} without proxy...\n`,
-          );
-          const { proxy, ...flagsWithoutProxy } = flags;
-          try {
-            return await execAction(flagsWithoutProxy);
-          } catch (retryErr) {
-            formatAndLogStderr(fnName, targetUrl, retryErr);
-            throw retryErr;
-          }
-        }
-      }
-      formatAndLogStderr(fnName, targetUrl, error);
-      throw error;
-    }
+const executeWithFallback = async (fnName, targetUrl, flags, execAction) => {
+  try {
+    return await execAction(flags);
+  } catch (error) {
+    formatAndLogStderr(fnName, targetUrl, error);
+    throw error;
   }
 };
 
