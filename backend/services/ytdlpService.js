@@ -85,11 +85,14 @@ const prepareTargetUrl = async (url) =>
   normalizeUrl(await resolveRedditShortLink(url));
 
 const applyCommonFlags = (targetUrl, baseFlags) => {
-  return {
+  const flags = {
     noPlaylist: true,
-    extractorArgs: "youtube:player_client=android;player_skip=webpage,configs",
     ...baseFlags,
   };
+  if (typeof targetUrl === "string" && /youtube\.com|youtu\.be/i.test(targetUrl)) {
+    flags.extractorArgs = "youtube:player_client=android;player_skip=webpage,configs";
+  }
+  return flags;
 };
 
 const formatAndLogStderr = (fnName, url, error) => {

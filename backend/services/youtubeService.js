@@ -2,7 +2,6 @@ import http from 'http';
 import https from 'https';
 import { URL } from 'url';
 import { videoInfoCache } from '../utils/cache.js';
-import * as ytdlpService from './ytdlpService.js';
 
 // --- Tier 3: Invidious Pool Configuration ---
 const FALLBACK_INVIDIOUS_INSTANCES = [
@@ -189,30 +188,101 @@ export const fetchVideoInfo = async (url) => {
     return cached;
   }
 
-  // 1. Primary: Use yt-dlp to extract real video metadata and format list (matches other platforms)
-  try {
-    const ytdlpInfo = await ytdlpService.fetchVideoInfo(url);
-    if (
-      ytdlpInfo &&
-      ytdlpInfo.title &&
-      Array.isArray(ytdlpInfo.formats) &&
-      ytdlpInfo.formats.length > 0
-    ) {
-      videoInfoCache.set(url, ytdlpInfo);
-      return ytdlpInfo;
-    }
-  } catch (err) {
-    process.stdout.write(
-      `[youtubeService] yt-dlp extraction failed, trying fallbacks: ${err.message}\n`,
-    );
-  }
-
   const videoId = extractYouTubeId(url);
   if (!videoId) {
     throw new Error('Invalid YouTube URL.');
   }
 
-  // 2. Secondary fallback: Dynamic Invidious Multi-Instance Pool
+  // Tier 1: YouTube oEmbed + YouTubei Internal Player API
+  try {
+    let title = null;
+    let thumbnail = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+    let duration = null;
+
+    try {
+      const oembedRes = await fetch(
+        `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`,
+        {
+          signal: AbortSignal.timeout(3500),
+          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+        }
+      );
+      if (oembedRes.ok) {
+        const oembedData = await oembedRes.json();
+        if (oembedData.title) title = oembedData.title;
+        if (oembedData.thumbnail_url) thumbnail = oembedData.thumbnail_url;
+      }
+    } catch {}
+
+    try {
+      const playerRes = await fetch('https://www.youtube.com/youtubei/v1/player?prettyPrint=false', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          videoId,
+          context: { client: { clientName: 'WEB', clientVersion: '2.20240722.01.00', hl: 'en', gl: 'US' } }
+        }),
+        signal: AbortSignal.timeout(3000)
+      });
+      if (playerRes.ok) {
+        const playerData = await playerRes.json();
+        if (playerData.videoDetails?.lengthSeconds) {
+          duration = parseInt(playerData.videoDetails.lengthSeconds, 10);
+        }
+        if (!title && playerData.videoDetails?.title) {
+          title = playerData.videoDetails.title;
+        }
+      }
+    } catch {}
+
+    if (title) {
+      const result = {
+        title,
+        thumbnail,
+        duration,
+        videoId,
+        embedDownloadUrl: `https://v2.y2jar.cc/?id=${videoId}&appearance=dark`,
+        y2mateUrl: `https://v38.www-y2mate.com/`,
+        isEmbedFallback: true,
+        formats: [
+          {
+            format_id: '137',
+            ext: 'mp4',
+            resolution: '1920x1080',
+            vcodec: 'h264',
+            acodec: 'mp4a',
+            hasVideo: true,
+            filesize: null,
+          },
+          {
+            format_id: '22',
+            ext: 'mp4',
+            resolution: '1280x720',
+            vcodec: 'h264',
+            acodec: 'mp4a',
+            hasVideo: true,
+            filesize: null,
+          },
+          {
+            format_id: '18',
+            ext: 'mp4',
+            resolution: '640x360',
+            vcodec: 'h264',
+            acodec: 'mp4a',
+            hasVideo: true,
+            filesize: null,
+          },
+        ],
+      };
+
+      videoInfoCache.set(url, result);
+      return result;
+    }
+  } catch (err) {
+    process.stdout.write(`[youtubeService] Tier 1 oEmbed/YouTubei failed: ${err.message}\n`);
+  }
+
+  // Tier 2: Invidious Dynamic Instance Pool
   try {
     await refreshInvidiousPool();
     const candidatePool = dynamicInvidiousPool.slice(0, 6);
@@ -243,92 +313,15 @@ export const fetchVideoInfo = async (url) => {
 
     videoInfoCache.set(url, result);
     return result;
-  } catch (tier3Err) {
-    const errorDetails = Array.isArray(tier3Err?.errors)
-      ? tier3Err.errors.map((e) => e?.message || String(e)).join('; ')
-      : tier3Err.message;
-    process.stdout.write(`[youtubeService] Invidious pool failed: ${tier3Err.message} (reasons: ${errorDetails})\n`);
+  } catch (tier2Err) {
+    const errorDetails = Array.isArray(tier2Err?.errors)
+      ? tier2Err.errors.map((e) => e?.message || String(e)).join('; ')
+      : tier2Err.message;
+    process.stdout.write(`[youtubeService] Tier 2 Invidious pool failed: ${tier2Err.message} (reasons: ${errorDetails})\n`);
   }
 
-  // 3. Tertiary fallback: YouTube oEmbed metadata + standard resolution format list
-  let title = 'YouTube Video';
-  let thumbnail = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
-  let duration = null;
-
-  try {
-    const oembedRes = await fetch(
-      `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`,
-      {
-        signal: AbortSignal.timeout(3500),
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
-      }
-    );
-    if (oembedRes.ok) {
-      const oembedData = await oembedRes.json();
-      if (oembedData.title) title = oembedData.title;
-      if (oembedData.thumbnail_url) thumbnail = oembedData.thumbnail_url;
-    }
-  } catch {}
-
-  try {
-    const playerRes = await fetch('https://www.youtube.com/youtubei/v1/player?prettyPrint=false', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        videoId,
-        context: { client: { clientName: 'WEB', clientVersion: '2.20240722.01.00', hl: 'en', gl: 'US' } }
-      }),
-      signal: AbortSignal.timeout(3000)
-    });
-    if (playerRes.ok) {
-      const playerData = await playerRes.json();
-      if (playerData.videoDetails?.lengthSeconds) {
-        duration = parseInt(playerData.videoDetails.lengthSeconds, 10);
-      }
-    }
-  } catch {}
-
-  const result = {
-    title,
-    thumbnail,
-    duration,
-    videoId,
-    embedDownloadUrl: `https://v2.y2jar.cc/?id=${videoId}&appearance=dark`,
-    y2mateUrl: `https://v38.www-y2mate.com/`,
-    isEmbedFallback: true,
-    formats: [
-      {
-        format_id: '137',
-        ext: 'mp4',
-        resolution: '1920x1080',
-        vcodec: 'h264',
-        acodec: 'mp4a',
-        hasVideo: true,
-        filesize: null,
-      },
-      {
-        format_id: '22',
-        ext: 'mp4',
-        resolution: '1280x720',
-        vcodec: 'h264',
-        acodec: 'mp4a',
-        hasVideo: true,
-        filesize: null,
-      },
-      {
-        format_id: '18',
-        ext: 'mp4',
-        resolution: '640x360',
-        vcodec: 'h264',
-        acodec: 'mp4a',
-        hasVideo: true,
-        filesize: null,
-      },
-    ],
-  };
-
-  videoInfoCache.set(url, result);
-  return result;
+  // Tier 3: Final Fallback / Error Handling
+  throw new Error('We are unable to fulfill the request for YouTube right now. Please retry after some time, or try our other supported platforms.');
 };
 
 const resolveQualityFromFormat = (fmt) => {

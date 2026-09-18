@@ -26,11 +26,13 @@ const errorHandler = (err, req, res, next) => {
   const fullErrorText = `${rawMessage} ${stderr || ''} ${err.shortMessage || ''}`;
   const reqUrl = (req.body && req.body.url) || (req.query && req.query.url) || '';
 
+  const isOtherPlatform = /dailymotion|vimeo|instagram|facebook|twitter|x\.com|reddit|tiktok|pinterest|threads|linkedin|twitch|snapchat/i.test(reqUrl);
   const isYouTube =
-    /youtube\.com|youtu\.be/i.test(reqUrl) ||
-    /youtube/i.test(fullErrorText) ||
-    /bot/i.test(fullErrorText) ||
-    /player response/i.test(fullErrorText);
+    !isOtherPlatform &&
+    (/youtube\.com|youtu\.be/i.test(reqUrl) ||
+      /youtube/i.test(fullErrorText) ||
+      /bot/i.test(fullErrorText) ||
+      /player response/i.test(fullErrorText));
 
   if (isYouTube) {
     userMessage =

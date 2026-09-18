@@ -6,6 +6,7 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import { fileURLToPath } from 'url';
+import { execSync, execFileSync } from 'child_process';
 
 import rateLimiter from './middlewares/rateLimiter.js';
 import errorHandler from './middlewares/errorHandler.js';
@@ -17,7 +18,49 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const findImpersonateBinary = () => {
+  try {
+    const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+    const pyScript = [
+      'import sys, os, pathlib, shutil',
+      'paths = [',
+      '    shutil.which("yt-dlp"),',
+      '    os.path.join(sys.prefix, "bin", "yt-dlp"),',
+      '    os.path.join(sys.prefix, "Scripts", "yt-dlp.exe"),',
+      '    os.path.join(str(pathlib.Path.home()), ".local", "bin", "yt-dlp")',
+      ']',
+      'found = [p for p in paths if p and os.path.exists(p)]',
+      'print(found[0] if found else "")',
+    ].join('\n');
+
+    const binary = execFileSync(pythonCmd, ['-c', pyScript], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+
+    if (binary && fs.existsSync(binary)) {
+      const targets = execFileSync(binary, ['--list-impersonate-targets'], {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+      });
+      if (targets && /chrome|firefox/i.test(targets)) {
+        return binary;
+      }
+    }
+  } catch {}
+  return null;
+};
+
 const updateYtDlpBinary = async () => {
+  try {
+    const impersonateBinary = findImpersonateBinary();
+    if (impersonateBinary) {
+      process.env.YTDLP_CUSTOM_BINARY = impersonateBinary;
+      process.stdout.write(`[yt-dlp] Impersonate-capable yt-dlp binary found at ${impersonateBinary}. Skipping binary download.\n`);
+      return;
+    }
+  } catch {}
+
   try {
     const isWin = process.platform === 'win32';
     const assetName = isWin ? 'yt-dlp.exe' : 'yt-dlp';
