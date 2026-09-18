@@ -5,6 +5,7 @@ import * as snapchatService from "../services/snapchatService.js";
 import * as pinterestService from "../services/pinterestService.js";
 import * as threadsService from "../services/threadsService.js";
 import * as linkedinService from "../services/linkedinService.js";
+import * as spotifyService from "../services/spotifyService.js";
 import * as ffmpegService from "../services/ffmpegService.js";
 import { detectPlatform } from "../utils/platformDetector.js";
 
@@ -25,6 +26,8 @@ const resolveMediaStream = async (platform, url, formatId, type) => {
   switch (platform) {
     case "youtube":
       return youtubeService.downloadVideo(url, formatId, type);
+    case "spotify":
+      return spotifyService.downloadSpotifyTrack(url, formatId, type);
     case "snapchat":
       return snapchatService.downloadVideo(url, type);
     case "pinterest":
@@ -56,7 +59,7 @@ const resolveMediaStream = async (platform, url, formatId, type) => {
 };
 
 const downloadMedia = async (req, res, next) => {
-  const { url, formatId, type, bitrate, downloadId } = req.query;
+  const { url, formatId, type, bitrate, downloadId, title } = req.query;
 
   if (downloadId) {
     downloadStatusMap.set(downloadId, 'pending');
@@ -69,14 +72,17 @@ const downloadMedia = async (req, res, next) => {
 
   try {
     const platform = detectPlatform(url);
-    const isAudio = type === "audio";
+    const isAudio = type === "audio" || platform === "spotify";
 
     const mediaStream = await resolveMediaStream(platform, url, formatId, type);
 
-    res.header(
-      "Content-Disposition",
-      `attachment; filename="${isAudio ? "audio.mp3" : "video.mp4"}"`,
-    );
+    const safeTitle = title
+      ? title.replace(/[^a-zA-Z0-9 _.-]/g, "").trim().slice(0, 120)
+      : "";
+    const defaultBase = isAudio ? "audio" : "video";
+    const filename = `${safeTitle || defaultBase}.${isAudio ? "mp3" : "mp4"}`;
+
+    res.header("Content-Disposition", `attachment; filename="${filename}"`);
     res.header("Content-Type", isAudio ? "audio/mpeg" : "video/mp4");
     res.flushHeaders();
 
@@ -100,6 +106,18 @@ const downloadMedia = async (req, res, next) => {
     res.on("finish", cleanup);
 
     if (isAudio) {
+      if (mediaStream.isMp3Ready) {
+        // CDN already delivered MP3 — pipe directly, no ffmpeg needed
+        mediaStream.pipe(res);
+        mediaStream.on("error", (err) => {
+          if (err.message !== "aborted" && err.code !== "ECONNRESET") {
+            process.stderr.write(`[download] CDN stream error: ${err.message}\n`);
+          }
+          cleanup();
+          if (!res.headersSent || !res.writableEnded) res.end();
+        });
+        return;
+      }
       const conversionSource = mediaStream.tempFilePath || mediaStream;
       ffmpegService.convertToMp3(conversionSource, res, bitrate);
       res.on("error", cleanup);

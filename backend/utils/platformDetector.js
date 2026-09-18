@@ -6,6 +6,7 @@ export const detectPlatform = (urlString) => {
     if (hostname.includes('pinterest.') || hostname.includes('pin.it')) return 'pinterest';
     if (hostname.includes('threads.net') || hostname.includes('threads.com')) return 'threads';
     if (hostname.includes('linkedin.com') || hostname.includes('lnkd.in')) return 'linkedin';
+    if (hostname.includes('spotify.com') || hostname.includes('spotify.link') || urlString.startsWith('spotify:')) return 'spotify';
     return 'ytdlp';
   } catch {
     return 'ytdlp';

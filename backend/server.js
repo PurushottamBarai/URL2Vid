@@ -170,6 +170,18 @@ const server = app.listen(PORT, () => {
   process.stdout.write(`[server] Running on port ${PORT}\n`);
 });
 
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    process.stderr.write(`[server] ERROR: Port ${PORT} is already in use. Kill the existing process first:\n`);
+    process.stderr.write(`  netstat -ano | findstr :${PORT}   (find the PID)\n`);
+    process.stderr.write(`  taskkill /PID <pid> /F             (Windows)\n`);
+    process.stderr.write(`  kill -9 <pid>                      (Linux/Mac)\n`);
+  } else {
+    process.stderr.write(`[server] Fatal error: ${err.message}\n`);
+  }
+  process.exit(1);
+});
+
 const shutdown = (signal) => {
   process.stdout.write(`[server] ${signal} received — shutting down gracefully\n`);
   server.close(() => {

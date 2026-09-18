@@ -4,6 +4,7 @@ import * as snapchatService from "../services/snapchatService.js";
 import * as pinterestService from "../services/pinterestService.js";
 import * as threadsService from "../services/threadsService.js";
 import * as linkedinService from "../services/linkedinService.js";
+import * as spotifyService from "../services/spotifyService.js";
 import * as ffmpegService from "../services/ffmpegService.js";
 import { processVideoFormats } from "../utils/formatHelpers.js";
 import { detectPlatform } from "../utils/platformDetector.js";
@@ -19,6 +20,9 @@ const resolveVideoInfo = async (platform, url) => {
   switch (platform) {
     case "youtube":
       info = await youtubeService.fetchVideoInfo(url);
+      break;
+    case "spotify":
+      info = await spotifyService.fetchSpotifyInfo(url);
       break;
     case "snapchat":
       info = await snapchatService.fetchVideoInfo(url);
@@ -91,7 +95,13 @@ const getInfo = async (req, res, next) => {
       y2mateUrl: info.y2mateUrl || null,
       isEmbedFallback: Boolean(info.isEmbedFallback),
       videoId: info.videoId || null,
+      platform: info.platform || platform,
+      spotifyType: info.spotifyType || null,
+      isCollection: Boolean(info.isCollection),
+      trackCount: info.trackCount || null,
+      tracks: info.tracks || null,
       audioAvailable:
+        Boolean(info.audioAvailable) ||
         Boolean(info.isEmbedFallback) ||
         (Array.isArray(info.formats) &&
           info.formats.some((f) => f.acodec !== "none")) ||

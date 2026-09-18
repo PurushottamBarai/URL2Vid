@@ -12,6 +12,7 @@ const urlPatterns = [
   { name: 'Snapchat', regex: /^(?:https?:\/\/)?(?:(?:www\.|story\.)?snapchat\.com\/(?:@[^/]+\/)?spotlight\/)/ },
   { name: 'Pinterest', regex: /^(?:https?:\/\/)?(?:(?:[\w-]+\.)?pinterest\.[a-z]+(?:\.[a-z]+)?\/(?:pin\/|ideas\/|[^/?#]+\/[^/?#]+\/)|pin\.it\/)/ },
   { name: 'Rumble', regex: /^(?:https?:\/\/)?(?:www\.)?rumble\.com\/(?:v\w[^/?#]*\.html|embed\/)/ },
+  { name: 'Spotify', regex: /^(?:https?:\/\/)?(?:open\.spotify\.com\/(?:track|playlist|album|artist)\/|spotify\.link\/)/ },
 ];
 
 const isPrivateIp = (hostname) => {
@@ -54,10 +55,6 @@ export const checkUrlStatus = (urlString) => {
 
     if (isPrivateIp(parsedUrl.hostname)) {
       return { isValid: false, error: 'Access to private or local network addresses is forbidden.', platform: null };
-    }
-
-    if (parsedUrl.hostname.includes('spotify.com')) {
-      return { isValid: false, error: 'Spotify links are not supported. We only extract from video platforms.', platform: null };
     }
 
     const match = urlPatterns.find((p) => p.regex.test(parsedUrl.href));

@@ -238,6 +238,39 @@ const getHttpStream = (streamUrl, maxRedirects = 5) => {
   });
 };
 
+// Quickly resolve a YouTube video ID for a search query without downloading
+// Uses yt-dlp --print id ytsearch1:... — typically completes in 2-5 seconds
+const resolveSearchVideoId = (searchQuery) =>
+  new Promise((resolve) => {
+    try {
+      const ytdlpExec = getYtdlpInstance();
+      const proc = ytdlpExec.exec(
+        `ytsearch1:${searchQuery}`,
+        {
+          print: 'id',
+          noPlaylist: true,
+          noWarnings: true,
+          socketTimeout: 15,
+        },
+        { stdio: ['ignore', 'pipe', 'ignore'] },
+      );
+
+      let output = '';
+      if (proc.stdout) proc.stdout.on('data', (chunk) => { output += chunk.toString(); });
+
+      const timer = setTimeout(() => resolve(null), 20000);
+
+      proc.on('close', () => {
+        clearTimeout(timer);
+        const id = output.trim().split('\n')[0].trim();
+        resolve(/^[a-zA-Z0-9_-]{10,12}$/.test(id) ? id : null);
+      });
+      proc.on('error', () => { clearTimeout(timer); resolve(null); });
+    } catch {
+      resolve(null);
+    }
+  });
+
 const downloadVideo = async (url, formatId, type) => {
   const targetUrl = await prepareTargetUrl(url);
 
@@ -385,4 +418,4 @@ const getAudioStream = async (url) => {
   return proc;
 };
 
-export { fetchVideoInfo, downloadVideo, getAudioStream };
+export { fetchVideoInfo, downloadVideo, getAudioStream, resolveSearchVideoId };

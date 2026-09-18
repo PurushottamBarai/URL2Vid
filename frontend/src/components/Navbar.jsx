@@ -9,9 +9,12 @@ import {
   SiPinterest, 
   SiReddit, 
   SiSnapchat,
-  SiThreads
+  SiThreads,
+  SiSpotify,
+  SiApplemusic,
+  SiYoutubemusic,
 } from 'react-icons/si';
-import { FaLinkedin } from 'react-icons/fa';
+import { FaLinkedin, FaSoundcloud } from 'react-icons/fa';
 import { useLanguage } from '../context/LanguageContext';
 
 const quickPlatforms = [
@@ -24,6 +27,14 @@ const quickPlatforms = [
   { name: 'LinkedIn', path: '/linkedin-video-downloader', Icon: FaLinkedin, color: 'text-blue-500' },
   { name: 'Snapchat', path: '/snapchat-video-downloader', Icon: SiSnapchat, color: 'text-yellow-500' },
   { name: 'Threads', path: '/threads-video-downloader', Icon: SiThreads, color: 'text-black' },
+];
+
+// Music platforms — handled via the main search bar, not dedicated landing pages
+const musicPlatforms = [
+  { name: 'Spotify', Icon: SiSpotify, color: 'text-[#1DB954]' },
+  { name: 'YouTube Music', Icon: SiYoutubemusic, color: 'text-red-500' },
+  { name: 'SoundCloud', Icon: FaSoundcloud, color: 'text-[#FF5500]' },
+  { name: 'Apple Music', Icon: SiApplemusic, color: 'text-[#FC3C44]' },
 ];
 
 const Navbar = () => {
@@ -125,21 +136,48 @@ const Navbar = () => {
             </button>
 
             {isPlatformsOpen && (
-              <div className="absolute top-full mt-2 -left-12 w-80 bg-surface border border-border shadow-xl rounded-2xl p-3 grid grid-cols-2 gap-1 animate-fade-in z-50">
-                {quickPlatforms.map((p) => {
-                  const Icon = p.Icon;
-                  return (
-                    <Link
-                      key={p.path}
-                      to={p.path}
-                      onClick={() => setIsPlatformsOpen(false)}
-                      className="flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
-                    >
-                      <Icon className={`w-3.5 h-3.5 shrink-0 ${p.color}`} />
-                      <span className="truncate">{p.name}</span>
-                    </Link>
-                  );
-                })}
+              <div className="absolute top-full mt-2 -left-12 w-80 bg-surface border border-border shadow-xl rounded-2xl p-3 animate-fade-in z-50">
+                {/* Video Platforms */}
+                <div className="grid grid-cols-2 gap-1">
+                  {quickPlatforms.map((p) => {
+                    const Icon = p.Icon;
+                    return (
+                      <Link
+                        key={p.path}
+                        to={p.path}
+                        onClick={() => setIsPlatformsOpen(false)}
+                        className="flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
+                      >
+                        <Icon className={`w-3.5 h-3.5 shrink-0 ${p.color}`} />
+                        <span className="truncate">{p.name}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+
+                {/* Music Platforms divider */}
+                <div className="mt-2 pt-2 border-t border-border/60">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-text-secondary px-2 block mb-1.5">Music</span>
+                  <div className="grid grid-cols-2 gap-1">
+                    {musicPlatforms.map((p) => {
+                      const Icon = p.Icon;
+                      return (
+                        <button
+                          key={p.name}
+                          type="button"
+                          onClick={() => {
+                            setIsPlatformsOpen(false);
+                            handleScrollTo('video-url-input', true);
+                          }}
+                          className="flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors w-full text-left"
+                        >
+                          <Icon className={`w-3.5 h-3.5 shrink-0 ${p.color}`} />
+                          <span className="truncate">{p.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -259,6 +297,28 @@ const Navbar = () => {
                   </Link>
                 );
               })}
+            </div>
+            <div className="mt-2 pt-2 border-t border-border/60">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-text-secondary px-1 block mb-1">Music</span>
+              <div className="grid grid-cols-2 gap-1">
+                {musicPlatforms.map((p) => {
+                  const Icon = p.Icon;
+                  return (
+                    <button
+                      key={p.name}
+                      type="button"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        handleScrollTo('video-url-input', true);
+                      }}
+                      className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-surface w-full text-left"
+                    >
+                      <Icon className={`w-3.5 h-3.5 shrink-0 ${p.color}`} />
+                      <span className="truncate">{p.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
