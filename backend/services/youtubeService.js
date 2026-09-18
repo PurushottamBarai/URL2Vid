@@ -62,7 +62,7 @@ const fetchFromInstance = async (baseUrl, videoId, maxRetries = 1) => {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
           'Accept': 'application/json',
         },
-        signal: AbortSignal.timeout(6000),
+        signal: AbortSignal.timeout(2500),
       });
 
       if (!res.ok) {
@@ -104,9 +104,10 @@ const fetchFromCloudflareRelay = async (videoId) => {
   try {
     const url = new URL(relayUrl);
     url.searchParams.set('id', videoId);
+    url.searchParams.set('url', `https://www.youtube.com/watch?v=${videoId}`);
     const res = await fetch(url.toString(), {
       headers: { 'User-Agent': 'URL2Vid-Server' },
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(4000),
     });
     if (!res.ok) return null;
     const data = await res.json();

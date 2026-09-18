@@ -118,7 +118,7 @@ const prepareTargetUrlSync = (url) =>
 
 const applyCommonFlags = (targetUrl, baseFlags) => {
   return {
-    extractorArgs: "youtube:player_client=android",
+    extractorArgs: "youtube:player_client=android;player_skip=webpage,configs",
     ...baseFlags,
   };
 };
