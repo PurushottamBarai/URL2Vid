@@ -1,13 +1,13 @@
-import * as youtubeService from '../services/youtubeService.js';
-import * as ytdlpService from '../services/ytdlpService.js';
-import * as snapchatService from '../services/snapchatService.js';
-import * as pinterestService from '../services/pinterestService.js';
-import * as threadsService from '../services/threadsService.js';
-import * as linkedinService from '../services/linkedinService.js';
-import * as ffmpegService from '../services/ffmpegService.js';
-import { processVideoFormats } from '../utils/formatHelpers.js';
-import { detectPlatform } from '../utils/platformDetector.js';
-import { videoInfoCache } from '../utils/cache.js';
+import * as youtubeService from "../services/youtubeService.js";
+import * as ytdlpService from "../services/ytdlpService.js";
+import * as snapchatService from "../services/snapchatService.js";
+import * as pinterestService from "../services/pinterestService.js";
+import * as threadsService from "../services/threadsService.js";
+import * as linkedinService from "../services/linkedinService.js";
+import * as ffmpegService from "../services/ffmpegService.js";
+import { processVideoFormats } from "../utils/formatHelpers.js";
+import { detectPlatform } from "../utils/platformDetector.js";
+import { videoInfoCache } from "../utils/cache.js";
 
 const resolveVideoInfo = async (platform, url) => {
   const cached = videoInfoCache.get(url);
@@ -17,38 +17,35 @@ const resolveVideoInfo = async (platform, url) => {
 
   let info;
   switch (platform) {
-    case 'youtube':
+    case "youtube":
       info = await youtubeService.fetchVideoInfo(url);
       break;
-    case 'snapchat':
+    case "snapchat":
       info = await snapchatService.fetchVideoInfo(url);
       break;
-    case 'pinterest':
-      info = await pinterestService.fetchVideoInfo(url).catch(() => 
-        ytdlpService.fetchVideoInfo(url)
-      );
+    case "pinterest":
+      info = await pinterestService
+        .fetchVideoInfo(url)
+        .catch(() => ytdlpService.fetchVideoInfo(url));
       break;
-    case 'threads':
-      info = await threadsService.fetchVideoInfo(url).catch(() => 
-        ytdlpService.fetchVideoInfo(url)
-      );
+    case "threads":
+      info = await threadsService
+        .fetchVideoInfo(url)
+        .catch(() => ytdlpService.fetchVideoInfo(url));
       break;
-    case 'linkedin':
-      info = await ytdlpService.fetchVideoInfo(url).catch(() => 
-        linkedinService.fetchVideoInfo(url)
-      );
+    case "linkedin":
+      info = await ytdlpService
+        .fetchVideoInfo(url)
+        .catch(() => linkedinService.fetchVideoInfo(url));
       break;
     default:
       info = await ytdlpService.fetchVideoInfo(url).catch((err) => {
-        const fullErr = `${err.stderr || ''} ${err.message || ''} ${err.shortMessage || ''}`;
+        const fullErr = `${err.stderr || ""} ${err.message || ""} ${err.shortMessage || ""}`;
         const ytIdMatch = fullErr.match(/\[youtube\]\s+([a-zA-Z0-9_-]{11})/i);
         if (ytIdMatch && ytIdMatch[1]) {
-          return youtubeService
-            .fetchVideoInfo(`https://www.youtube.com/watch?v=${ytIdMatch[1]}`)
-            .then((ytInfo) => ({
-              ...ytInfo,
-              youtubeId: ytIdMatch[1],
-            }));
+          return youtubeService.fetchVideoInfo(
+            `https://www.youtube.com/watch?v=${ytIdMatch[1]}`,
+          );
         }
         throw err;
       });
@@ -68,7 +65,12 @@ const getInfo = async (req, res, next) => {
     const platform = detectPlatform(url);
     const info = await resolveVideoInfo(platform, url);
 
-    if ((info.duration === null || info.duration === undefined || info.duration <= 0) && info.formats?.[0]?.url) {
+    if (
+      (info.duration === null ||
+        info.duration === undefined ||
+        info.duration <= 0) &&
+      info.formats?.[0]?.url
+    ) {
       try {
         const probed = await ffmpegService.probeDuration(info.formats[0].url);
         if (probed && probed > 0) {
@@ -86,7 +88,8 @@ const getInfo = async (req, res, next) => {
       duration: info.duration,
       formats: availableFormats,
       audioAvailable:
-        (Array.isArray(info.formats) && info.formats.some((f) => f.acodec !== 'none')) ||
+        (Array.isArray(info.formats) &&
+          info.formats.some((f) => f.acodec !== "none")) ||
         Boolean(info.audioUrl),
     });
   } catch (error) {

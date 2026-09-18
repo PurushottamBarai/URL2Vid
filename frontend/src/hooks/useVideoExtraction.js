@@ -37,8 +37,26 @@ export const useVideoExtraction = () => {
       if (err.name === 'CanceledError' || err.name === 'AbortError') {
         return;
       }
-      if (err.response && err.response.data && err.response.data.error) {
-        setError(err.response.data.error);
+
+      const serverError = err.response?.data?.error;
+      const rawErrorText = `${serverError || ''} ${err.message || ''}`;
+      const isYouTube =
+        /youtube\.com|youtu\.be/i.test(url) ||
+        /youtube/i.test(rawErrorText) ||
+        /bot/i.test(rawErrorText) ||
+        /player response/i.test(rawErrorText);
+
+      if (
+        isYouTube &&
+        (serverError || /Command failed|exit code|yt-dlp|bot|sign in/i.test(rawErrorText) || (err.response && err.response.status >= 400))
+      ) {
+        setError(
+          'We are unable to fulfill the request for YouTube right now. Please retry after some time, or try our other supported platforms.'
+        );
+      } else if (/Command failed|exit code|\/tmp\/|yt-dlp|spawn/i.test(rawErrorText)) {
+        setError('Unable to process this video URL at the moment. Please check the link and retry, or try another video.');
+      } else if (serverError) {
+        setError(serverError);
       } else if (err.code === 'ERR_NETWORK') {
         setError('Unable to connect to the extraction server. Please check your internet connection and try again.');
       } else {

@@ -65,7 +65,7 @@ export default function VideoGuide() {
               "Step-by-step guide showing how to use URL2Vid to download videos and audio from any social media platform.",
             thumbnailUrl:
               "https://img.youtube.com/vi/ONIXO2fe948/maxresdefault.jpg",
-            uploadDate: "2026-09-17",
+            uploadDate: "2026-09-17T00:00:00+05:30",
             embedUrl: "https://www.youtube.com/embed/ONIXO2fe948",
           }),
         }}

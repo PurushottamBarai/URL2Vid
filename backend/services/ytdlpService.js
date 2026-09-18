@@ -46,7 +46,15 @@ const resolveRedditShortLink = async (urlString) => {
   }
   try {
     const nullDevice = process.platform === "win32" ? "NUL" : "/dev/null";
-    const args = ["-s", "-o", nullDevice, "-w", "%{url_effective}", "-L", urlString];
+    const args = [
+      "-s",
+      "-o",
+      nullDevice,
+      "-w",
+      "%{url_effective}",
+      "-L",
+      urlString,
+    ];
     const resolved = execFileSync("curl", args, {
       encoding: "utf8",
       timeout: 10000,
@@ -75,7 +83,15 @@ const resolveRedditShortLinkSync = (urlString) => {
   }
   try {
     const nullDevice = process.platform === "win32" ? "NUL" : "/dev/null";
-    const args = ["-s", "-o", nullDevice, "-w", "%{url_effective}", "-L", urlString];
+    const args = [
+      "-s",
+      "-o",
+      nullDevice,
+      "-w",
+      "%{url_effective}",
+      "-L",
+      urlString,
+    ];
     const resolved = execFileSync("curl", args, {
       encoding: "utf8",
       timeout: 10000,
@@ -102,7 +118,7 @@ const prepareTargetUrlSync = (url) =>
 
 const applyCommonFlags = (targetUrl, baseFlags) => {
   return {
-    extractorArgs: "youtube:player_client=android,ios,mweb",
+    extractorArgs: "youtube:player_client=android",
     ...baseFlags,
   };
 };
@@ -112,15 +128,6 @@ const formatAndLogStderr = (fnName, url, error) => {
     ? error.stderr.trim()
     : error.shortMessage || error.message || String(error);
   const exitCode = error.exitCode ?? error.code ?? "N/A";
-
-  // When a Reddit/third-party post embeds YouTube, don't spam stderr with a failure notice since it's handled gracefully
-  if (/\[youtube\]\s+[a-zA-Z0-9_-]{11}/i.test(stderrDetails)) {
-    process.stdout.write(
-      `[yt-dlp info] Detected embedded YouTube video in ${url} - delegating to youtubeService\n`
-    );
-    return;
-  }
-
   process.stderr.write(
     `[yt-dlp error] ${fnName} failed for URL: ${url} (ExitCode: ${exitCode})\n[yt-dlp stderr]: ${stderrDetails}\n`,
   );
@@ -157,10 +164,15 @@ const fetchVideoInfo = async (url) => {
     ];
   }
 
-  const result = await executeWithFallback("fetchVideoInfo", targetUrl, flags, (runFlags) => {
-    const ytdlpExec = getYtdlpInstance();
-    return ytdlpExec(targetUrl, runFlags);
-  });
+  const result = await executeWithFallback(
+    "fetchVideoInfo",
+    targetUrl,
+    flags,
+    (runFlags) => {
+      const ytdlpExec = getYtdlpInstance();
+      return ytdlpExec(targetUrl, runFlags);
+    },
+  );
 
   videoInfoCache.set(url, result);
   return result;
@@ -195,12 +207,14 @@ const getHttpStream = (streamUrl, maxRedirects = 5) => {
         } else {
           resolve(res);
         }
-      }
+      },
     );
 
     req.on("error", reject);
     req.on("timeout", () =>
-      req.destroy(new Error("Connection timed out while downloading video stream."))
+      req.destroy(
+        new Error("Connection timed out while downloading video stream."),
+      ),
     );
   });
 };
@@ -216,14 +230,14 @@ const downloadVideo = async (url, formatId, type) => {
         ? cached.formats.find(
             (f) =>
               String(f.format_id) === String(formatId) ||
-              String(f.formatId) === String(formatId)
+              String(f.formatId) === String(formatId),
           )
         : null;
 
       const directCandidate =
         matched ||
         cached.formats.find(
-          (f) => f.vcodec !== "none" && f.acodec !== "none" && f.url
+          (f) => f.vcodec !== "none" && f.acodec !== "none" && f.url,
         );
 
       if (
@@ -234,12 +248,12 @@ const downloadVideo = async (url, formatId, type) => {
       ) {
         try {
           process.stdout.write(
-            `[ytdlpService] Fast-path direct stream for ${targetUrl}\n`
+            `[ytdlpService] Fast-path direct stream for ${targetUrl}\n`,
           );
           return await getHttpStream(directCandidate.url);
         } catch (err) {
           process.stdout.write(
-            `[ytdlpService] Fast-path stream failed, falling back to disk buffer: ${err.message}\n`
+            `[ytdlpService] Fast-path stream failed, falling back to disk buffer: ${err.message}\n`,
           );
         }
       }

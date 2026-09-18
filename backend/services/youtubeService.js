@@ -56,6 +56,50 @@ const fetchFromInstance = async (baseUrl, videoId, maxRetries = 2) => {
   throw lastError;
 };
 
+const PIPED_INSTANCES = [
+  'https://api.piped.private.coffee',
+  'https://pipedapi.ducks.party',
+];
+
+const fetchFromPiped = async (videoId) => {
+  for (const base of PIPED_INSTANCES) {
+    try {
+      const res = await fetch(`${base}/streams/${videoId}`, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+        signal: AbortSignal.timeout(6000),
+      });
+      if (!res.ok) continue;
+      const data = await res.json();
+      if (!data || !data.title) continue;
+
+      const mp4Streams = (data.videoStreams || [])
+        .filter((s) => s.format === 'MP4' && s.url)
+        .map((s) => ({
+          format_id: String(s.itag || 'best'),
+          ext: 'mp4',
+          resolution: s.quality || '720p',
+          vcodec: s.codec || 'h264',
+          acodec: s.videoOnly ? 'none' : 'mp4a',
+          url: s.url,
+          filesize: s.contentLength > 0 ? s.contentLength : null,
+        }));
+
+      if (mp4Streams.length === 0) continue;
+
+      const audioUrl = (data.audioStreams || []).find((s) => s.url)?.url || null;
+
+      return {
+        title: data.title,
+        thumbnail: data.thumbnailUrl || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+        duration: data.duration,
+        formats: mp4Streams,
+        audioUrl,
+      };
+    } catch {}
+  }
+  throw new Error('All Piped alternative relay instances failed');
+};
+
 export const fetchVideoInfo = async (url) => {
   const cached = videoInfoCache.get(url);
   if (cached) {
@@ -68,6 +112,7 @@ export const fetchVideoInfo = async (url) => {
     return ytdlpService.fetchVideoInfo(url);
   }
 
+  // Tier 1: Invidious Multi-Instance Pool
   try {
     const promises = INVIDIOUS_INSTANCES.map((base) => fetchFromInstance(base, videoId));
     const data = await Promise.any(promises);
@@ -130,9 +175,21 @@ export const fetchVideoInfo = async (url) => {
     videoInfoCache.set(url, result);
     return result;
   } catch (err) {
-    process.stdout.write(`[youtubeService] Invidious pool failed, falling back to yt-dlp: ${err.message}\n`);
-    return ytdlpService.fetchVideoInfo(url);
+    process.stdout.write(`[youtubeService] Tier 1 Invidious pool failed: ${err.message}\n`);
   }
+
+  // Tier 2: Piped Alternative Relay Pool
+  try {
+    const pipedResult = await fetchFromPiped(videoId);
+    videoInfoCache.set(url, pipedResult);
+    process.stdout.write(`[youtubeService] Tier 2 Piped relay succeeded for ${videoId}\n`);
+    return pipedResult;
+  } catch (err) {
+    process.stdout.write(`[youtubeService] Tier 2 Piped relay failed, falling back to Tier 3 yt-dlp: ${err.message}\n`);
+  }
+
+  // Tier 3: yt-dlp with unblocked Android client
+  return ytdlpService.fetchVideoInfo(url);
 };
 
 const getStreamWithRedirects = (streamUrl, maxRedirects = 5) => {
@@ -179,16 +236,23 @@ export const downloadVideo = async (url, formatId, type) => {
     const info = await fetchVideoInfo(url);
     let streamUrl = null;
 
+    const videoFormats = Array.isArray(info.formats)
+      ? info.formats.filter((f) => f.vcodec !== 'none' && f.format_note !== 'storyboard' && !f.format_id?.startsWith('sb'))
+      : [];
+
     if (type === 'audio') {
-      streamUrl = info.audioUrl || info.formats?.[0]?.url;
+      streamUrl =
+        info.audioUrl ||
+        info.formats?.find((f) => f.acodec !== 'none')?.url ||
+        info.formats?.[0]?.url;
     } else {
       const matchedFormat = formatId
         ? info.formats?.find((f) => f.format_id === String(formatId))
         : null;
-      streamUrl = matchedFormat?.url || info.formats?.[0]?.url;
+      streamUrl = matchedFormat?.url || videoFormats[0]?.url || info.formats?.[0]?.url;
     }
 
-    if (streamUrl) {
+    if (streamUrl && !streamUrl.includes('/storyboard')) {
       return await getStreamWithRedirects(streamUrl);
     }
   } catch (err) {
