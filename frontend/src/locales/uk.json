@@ -1,0 +1,16 @@
+{
+  "navVideoGuide": "Відеопосібник",
+  "navPlatforms": "Платформи",
+  "navSupportedSites": "Підтримувані сайти",
+  "navFaq": "Відповіді на найбільш поширені запитання",
+  "navPasteUrl": "Вставити URL-адресу",
+  "navPasteDownload": "Вставити та завантажити відео",
+  "heroTitle": "Завантажити відео з URL-адреси",
+  "heroSubtitle": "Безкоштовний завантажувач відео онлайн — вставте будь-яку URL-адресу з ваших улюблених платформ.",
+  "pasteUrlLabel": "Вставити URL-адресу відео",
+  "pasteUrlPlaceholder": "https://...",
+  "formatVideo": "Відео (MP4)",
+  "formatAudio": "Аудіо/mp3",
+  "formatMute": "Вимкнути відео (MP4)",
+  "extract": "Витяг"
+}

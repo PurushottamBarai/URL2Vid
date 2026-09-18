@@ -5,7 +5,7 @@ const urlPatterns = [
   { name: 'X', regex: /^(?:https?:\/\/)?(?:(?:www\.|mobile\.)?(?:twitter\.com|x\.com))\/.*\/status\// },
   { name: 'Vimeo', regex: /^(?:https?:\/\/)?(?:(?:www\.|player\.)?vimeo\.com\/)(?:(?:channels|album|groups)\/[^/]+\/)?(?:video\/)?\d+/ },
   { name: 'Dailymotion', regex: /^(?:https?:\/\/)?(?:(?:www\.)?dailymotion\.com\/(?:video\/|embed\/video\/)|dai\.ly\/)/ },
-  { name: 'Twitch', regex: /^(?:https?:\/\/)?(?:clips\.twitch\.tv\/|(?:www\.)?twitch\.tv\/.*\/clip\/)/ },
+  { name: 'Twitch', regex: /^(?:https?:\/\/)?(?:clips\.twitch\.tv\/|(?:www\.|m\.)?twitch\.tv\/.*\/clip\/)/ },
   { name: 'Reddit', regex: /^(?:https?:\/\/)?(?:(?:www\.|old\.)?reddit\.com\/r\/[^/]+\/(?:comments|s)\/|v\.redd\.it\/|redd\.it\/)/ },
   { name: 'LinkedIn', regex: /^(?:https?:\/\/)?(?:(?:www\.)?linkedin\.com\/(?:posts\/|feed\/update\/|video\/live\/)|lnkd\.in\/)/ },
   { name: 'Threads', regex: /^(?:https?:\/\/)?(?:www\.)?threads\.(?:com|net)\/@[^/?#]+\/post\// },

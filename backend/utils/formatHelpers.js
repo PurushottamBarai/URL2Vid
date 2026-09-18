@@ -1,3 +1,13 @@
+export const formatFilesizeLabel = (bytes, isEstimated = false) => {
+  if (!bytes || isNaN(bytes) || bytes <= 0) return null;
+  const mb = bytes / 1048576;
+  const prefix = isEstimated ? '~' : '';
+  if (mb < 0.1) {
+    return `${prefix}${Math.round(bytes / 1024)} KB`;
+  }
+  return `${prefix}${mb.toFixed(1)} MB`;
+};
+
 export const processVideoFormats = (rawFormats, duration) => {
   if (!Array.isArray(rawFormats)) {
     return [];
@@ -22,12 +32,14 @@ export const processVideoFormats = (rawFormats, duration) => {
   let formats = rawFormats
     .filter((f) => f.vcodec !== 'none' || f.acodec !== 'none')
     .map((f) => {
+      let isEstimated = false;
       let filesize = f.filesize || f.filesize_approx || null;
       if (!filesize && duration && duration > 0) {
         const bitrateKbps =
           f.tbr || (f.vbr || 0) + (f.abr || 0) || estimateBitrateForRes(f.width, f.height, f.resolution);
         if (bitrateKbps && bitrateKbps > 0) {
           filesize = Math.round((bitrateKbps * 1000 * duration) / 8);
+          isEstimated = true;
         }
       }
 
@@ -37,6 +49,7 @@ export const processVideoFormats = (rawFormats, duration) => {
       // If video format is video-only (needs audio muxed), add audio size so estimate matches downloaded file
       if (hasVideo && !hasAudio && filesize && audioFilesize > 0) {
         filesize += audioFilesize;
+        isEstimated = true;
       }
 
       let resolution = f.resolution || (f.width ? `${f.width}x${f.height}` : null);
@@ -59,6 +72,8 @@ export const processVideoFormats = (rawFormats, duration) => {
         ext: f.ext,
         resolution,
         filesize,
+        isEstimated,
+        sizeLabel: formatFilesizeLabel(filesize, isEstimated),
         hasVideo,
         hasAudio,
       };
@@ -96,6 +111,8 @@ export const processVideoFormats = (rawFormats, duration) => {
         if (p && refP) {
           const scaleFactor = Math.sqrt(p / refP);
           f.filesize = Math.round(refFormat.filesize * scaleFactor);
+          f.isEstimated = true;
+          f.sizeLabel = formatFilesizeLabel(f.filesize, true);
         }
       }
     });

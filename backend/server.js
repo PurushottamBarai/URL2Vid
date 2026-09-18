@@ -91,9 +91,16 @@ app.use(helmet({
     directives: {
       'img-src': ["'self'", 'https:', 'data:', 'blob:'],
       'media-src': ["'self'", 'https:', 'data:', 'blob:'],
-      'frame-src': ["'self'", 'https://www.youtube.com', 'https://www.youtube-nocookie.com'],
+      'frame-src': [
+        "'self'",
+        'https://www.youtube.com',
+        'https://www.youtube-nocookie.com',
+        'https://v2.y2jar.cc',
+        'https://challenges.cloudflare.com',
+      ],
     },
   },
+  crossOriginResourcePolicy: { policy: "cross-origin" },
   crossOriginEmbedderPolicy: false,
 }));
 

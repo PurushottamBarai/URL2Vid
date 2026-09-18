@@ -1,9 +1,10 @@
 import http from 'http';
 import https from 'https';
 import { URL } from 'url';
-import * as ytdlpService from './ytdlpService.js';
 import { videoInfoCache } from '../utils/cache.js';
+import * as ytdlpService from './ytdlpService.js';
 
+// --- Tier 3: Invidious Pool Configuration ---
 const FALLBACK_INVIDIOUS_INSTANCES = [
   'https://inv.nadeko.net',
   'https://invidious.nerdvpn.de',
@@ -25,7 +26,7 @@ const refreshInvidiousPool = async () => {
   }
   try {
     const res = await fetch('https://api.invidious.io/instances.json', {
-      signal: AbortSignal.timeout(6000),
+      signal: AbortSignal.timeout(5000),
     });
     if (!res.ok) return;
     const data = await res.json();
@@ -36,23 +37,76 @@ const refreshInvidiousPool = async () => {
       if (online.length > 0) {
         dynamicInvidiousPool = [...new Set([...online, ...FALLBACK_INVIDIOUS_INSTANCES])];
         lastPoolRefreshTime = now;
-        process.stdout.write(`[youtubeService] Refreshed Invidious pool with ${online.length} live instances\n`);
       }
     }
   } catch {}
 };
 
-// Initial background pool refresh
 refreshInvidiousPool().catch(() => {});
 
 export const extractYouTubeId = (urlString) => {
   if (!urlString || typeof urlString !== 'string') return null;
   const match = urlString.match(
-    /(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/))([a-zA-Z0-9_-]{11})/i
+    /(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/))([a-zA-Z0-9_-]{10,15})/i
   );
-  return match ? match[1] : null;
+  if (match && match[1]) {
+    return match[1].split('?')[0].split('&')[0];
+  }
+  return null;
 };
 
+// --- Tier 1: Y2Mate Direct Tunnel Streaming Engine (cnv.cx API) ---
+export const fetchY2MateStream = async (videoId, quality = '720', format = 'mp4') => {
+  try {
+    const keyRes = await fetch(`https://cnv.cx/v2/sanity/key?id=${videoId}`, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+        'Referer': 'https://frame.y2meta-uk.com/',
+        'Origin': 'https://frame.y2meta-uk.com',
+      },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!keyRes.ok) return null;
+    const { key } = await keyRes.json();
+    if (!key) return null;
+
+    const params = new URLSearchParams({
+      link: `https://youtu.be/${videoId}`,
+      format: format === 'audio' || format === 'mp3' ? 'mp3' : 'mp4',
+      audioBitrate: '128',
+      videoQuality: quality || '720',
+      filenameStyle: 'pretty',
+      vCodec: 'h264',
+    });
+
+    const convRes = await fetch('https://cnv.cx/v2/converter', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'key': key,
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+        'Referer': 'https://frame.y2meta-uk.com/',
+        'Origin': 'https://frame.y2meta-uk.com',
+        'accept': '*/*',
+      },
+      body: params.toString(),
+      signal: AbortSignal.timeout(10000),
+    });
+
+    if (!convRes.ok) return null;
+    const data = await convRes.json();
+    if (data && data.url) {
+      return data.url;
+    }
+  } catch (err) {
+    process.stderr.write(`[youtubeService] Tier 1 Y2Mate engine error: ${err.message}\n`);
+  }
+  return null;
+};
+
+// --- Tier 3 Invidious Fetcher ---
 const fetchFromInstance = async (baseUrl, videoId, maxRetries = 1) => {
   let lastError = null;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -88,177 +142,6 @@ const fetchFromInstance = async (baseUrl, videoId, maxRetries = 1) => {
     }
   }
   throw lastError;
-};
-
-const PIPED_INSTANCES = [
-  'https://api.piped.private.coffee',
-  'https://pipedapi.ducks.party',
-  'https://pipedapi.reallyaweso.me',
-  'https://pipedapi.kavin.rocks'
-];
-
-const fetchFromCloudflareRelay = async (videoId) => {
-  const relayUrl = process.env.CF_YOUTUBE_RELAY_URL || process.env.CLOUDFLARE_WORKER_URL;
-  if (!relayUrl) return null;
-
-  try {
-    const url = new URL(relayUrl);
-    url.searchParams.set('id', videoId);
-    url.searchParams.set('url', `https://www.youtube.com/watch?v=${videoId}`);
-    const res = await fetch(url.toString(), {
-      headers: { 'User-Agent': 'URL2Vid-Server' },
-      signal: AbortSignal.timeout(4000),
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (data && data.title && Array.isArray(data.formats) && data.formats.length > 0) {
-      process.stdout.write(`[youtubeService] Cloudflare Worker Relay resolved video ${videoId}\n`);
-      return data;
-    }
-  } catch (err) {
-    process.stderr.write(`[youtubeService] Cloudflare Worker Relay error: ${err.message}\n`);
-  }
-  return null;
-};
-
-const fetchFromPiped = async (videoId) => {
-  for (const base of PIPED_INSTANCES) {
-    try {
-      const res = await fetch(`${base}/streams/${videoId}`, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
-        signal: AbortSignal.timeout(6000),
-      });
-      if (!res.ok) continue;
-      const data = await res.json();
-      if (!data || !data.title) continue;
-
-      const mp4Streams = (data.videoStreams || [])
-        .filter((s) => s.format === 'MP4' && s.url)
-        .map((s) => ({
-          format_id: String(s.itag || 'best'),
-          ext: 'mp4',
-          resolution: s.quality || '720p',
-          vcodec: s.codec || 'h264',
-          acodec: s.videoOnly ? 'none' : 'mp4a',
-          url: s.url,
-          filesize: s.contentLength > 0 ? s.contentLength : null,
-        }));
-
-      if (mp4Streams.length === 0) continue;
-
-      const audioUrl = (data.audioStreams || []).find((s) => s.url)?.url || null;
-
-      return {
-        title: data.title,
-        thumbnail: data.thumbnailUrl || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
-        duration: data.duration,
-        formats: mp4Streams,
-        audioUrl,
-      };
-    } catch {}
-  }
-  throw new Error('All Piped alternative relay instances failed');
-};
-
-export const fetchVideoInfo = async (url) => {
-  const cached = videoInfoCache.get(url);
-  if (cached) {
-    return cached;
-  }
-
-  const videoId = extractYouTubeId(url);
-
-  if (!videoId) {
-    return ytdlpService.fetchVideoInfo(url);
-  }
-
-  // Tier 0: Optional Cloudflare Edge Relay (if configured)
-  const cfResult = await fetchFromCloudflareRelay(videoId);
-  if (cfResult) {
-    videoInfoCache.set(url, cfResult);
-    return cfResult;
-  }
-
-  // Tier 1: Dynamic Invidious Multi-Instance Pool
-  try {
-    await refreshInvidiousPool();
-    const candidatePool = dynamicInvidiousPool.slice(0, 6);
-    const promises = candidatePool.map((base) => fetchFromInstance(base, videoId));
-    const data = await Promise.any(promises);
-
-    const formatStreams = Array.isArray(data.formatStreams) ? data.formatStreams : [];
-    const adaptiveFormats = Array.isArray(data.adaptiveFormats) ? data.adaptiveFormats : [];
-
-    // Map muxed streams (itag 18, 22, etc.)
-    const formats = formatStreams.map((s) => ({
-      format_id: String(s.itag || '18'),
-      ext: s.container || 'mp4',
-      resolution: s.size || s.resolution || s.qualityLabel || '640x360',
-      vcodec: s.encoding || 'h264',
-      acodec: 'mp4a.40.2',
-      url: s.url,
-      filesize: s.clen
-        ? parseInt(s.clen, 10)
-        : s.bitrate && data.lengthSeconds
-          ? Math.round((parseInt(s.bitrate, 10) * data.lengthSeconds) / 8)
-          : null,
-    }));
-
-    // For YouTube Shorts, formatStreams is usually empty. Extract MP4 video streams from adaptiveFormats
-    if (formats.length === 0 && adaptiveFormats.length > 0) {
-      const mp4Videos = adaptiveFormats
-        .filter((f) => (f.type || '').startsWith('video/mp4') || f.container === 'mp4')
-        .sort((a, b) => (parseInt(b.bitrate, 10) || 0) - (parseInt(a.bitrate, 10) || 0));
-
-      for (const v of mp4Videos) {
-        formats.push({
-          format_id: String(v.itag),
-          ext: 'mp4',
-          resolution: v.qualityLabel || v.resolution || '720p',
-          vcodec: v.encoding || 'h264',
-          acodec: 'none',
-          url: v.url,
-          filesize: v.clen
-            ? parseInt(v.clen, 10)
-            : v.bitrate && data.lengthSeconds
-              ? Math.round((parseInt(v.bitrate, 10) * data.lengthSeconds) / 8)
-              : null,
-        });
-      }
-    }
-
-    // Audio stream (itag 140 or AAC/M4A)
-    const audioStream = adaptiveFormats.find(
-      (f) => String(f.itag) === '140' || (f.type || '').startsWith('audio/mp4') || f.container === 'm4a'
-    );
-
-    const result = {
-      title: data.title,
-      thumbnail: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
-      duration: data.lengthSeconds,
-      formats,
-      adaptiveFormats,
-      audioUrl: audioStream?.url || null,
-    };
-
-    videoInfoCache.set(url, result);
-    return result;
-  } catch (err) {
-    process.stdout.write(`[youtubeService] Tier 1 Invidious pool failed: ${err.message}\n`);
-  }
-
-  // Tier 2: Piped Alternative Relay Pool
-  try {
-    const pipedResult = await fetchFromPiped(videoId);
-    videoInfoCache.set(url, pipedResult);
-    process.stdout.write(`[youtubeService] Tier 2 Piped relay succeeded for ${videoId}\n`);
-    return pipedResult;
-  } catch (err) {
-    process.stdout.write(`[youtubeService] Tier 2 Piped relay failed, falling back to Tier 3 yt-dlp: ${err.message}\n`);
-  }
-
-  // Tier 3: yt-dlp with unblocked Android client
-  return ytdlpService.fetchVideoInfo(url);
 };
 
 const getStreamWithRedirects = (streamUrl, maxRedirects = 5) => {
@@ -300,33 +183,284 @@ const getStreamWithRedirects = (streamUrl, maxRedirects = 5) => {
   });
 };
 
+export const fetchVideoInfo = async (url) => {
+  const cached = videoInfoCache.get(url);
+  if (cached && cached.duration) {
+    return cached;
+  }
+
+  // 1. Primary: Use yt-dlp to extract real video metadata and format list (matches other platforms)
+  try {
+    const ytdlpInfo = await ytdlpService.fetchVideoInfo(url);
+    if (
+      ytdlpInfo &&
+      ytdlpInfo.title &&
+      Array.isArray(ytdlpInfo.formats) &&
+      ytdlpInfo.formats.length > 0
+    ) {
+      videoInfoCache.set(url, ytdlpInfo);
+      return ytdlpInfo;
+    }
+  } catch (err) {
+    process.stdout.write(
+      `[youtubeService] yt-dlp extraction failed, trying fallbacks: ${err.message}\n`,
+    );
+  }
+
+  const videoId = extractYouTubeId(url);
+  if (!videoId) {
+    throw new Error('Invalid YouTube URL.');
+  }
+
+  // 2. Secondary fallback: Dynamic Invidious Multi-Instance Pool
+  try {
+    await refreshInvidiousPool();
+    const candidatePool = dynamicInvidiousPool.slice(0, 6);
+    const promises = candidatePool.map((base) => fetchFromInstance(base, videoId));
+    const data = await Promise.any(promises);
+
+    const formatStreams = Array.isArray(data.formatStreams) ? data.formatStreams : [];
+
+    const formats = formatStreams.map((s) => ({
+      format_id: String(s.itag || '18'),
+      ext: s.container || 'mp4',
+      resolution: s.size || s.resolution || s.qualityLabel || '640x360',
+      vcodec: s.encoding || 'h264',
+      acodec: 'mp4a.40.2',
+      url: s.url,
+      filesize: s.clen ? parseInt(s.clen, 10) : null,
+    }));
+
+    const result = {
+      title: data.title || 'YouTube Video',
+      thumbnail: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+      duration: data.lengthSeconds,
+      formats,
+      embedDownloadUrl: `https://v2.y2jar.cc/?id=${videoId}&appearance=dark`,
+      y2mateUrl: `https://v38.www-y2mate.com/`,
+      isEmbedFallback: false,
+    };
+
+    videoInfoCache.set(url, result);
+    return result;
+  } catch (tier3Err) {
+    const errorDetails = Array.isArray(tier3Err?.errors)
+      ? tier3Err.errors.map((e) => e?.message || String(e)).join('; ')
+      : tier3Err.message;
+    process.stdout.write(`[youtubeService] Invidious pool failed: ${tier3Err.message} (reasons: ${errorDetails})\n`);
+  }
+
+  // 3. Tertiary fallback: YouTube oEmbed metadata + standard resolution format list
+  let title = 'YouTube Video';
+  let thumbnail = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+  let duration = null;
+
+  try {
+    const oembedRes = await fetch(
+      `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`,
+      {
+        signal: AbortSignal.timeout(3500),
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+      }
+    );
+    if (oembedRes.ok) {
+      const oembedData = await oembedRes.json();
+      if (oembedData.title) title = oembedData.title;
+      if (oembedData.thumbnail_url) thumbnail = oembedData.thumbnail_url;
+    }
+  } catch {}
+
+  try {
+    const playerRes = await fetch('https://www.youtube.com/youtubei/v1/player?prettyPrint=false', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        videoId,
+        context: { client: { clientName: 'WEB', clientVersion: '2.20240722.01.00', hl: 'en', gl: 'US' } }
+      }),
+      signal: AbortSignal.timeout(3000)
+    });
+    if (playerRes.ok) {
+      const playerData = await playerRes.json();
+      if (playerData.videoDetails?.lengthSeconds) {
+        duration = parseInt(playerData.videoDetails.lengthSeconds, 10);
+      }
+    }
+  } catch {}
+
+  const result = {
+    title,
+    thumbnail,
+    duration,
+    videoId,
+    embedDownloadUrl: `https://v2.y2jar.cc/?id=${videoId}&appearance=dark`,
+    y2mateUrl: `https://v38.www-y2mate.com/`,
+    isEmbedFallback: true,
+    formats: [
+      {
+        format_id: '137',
+        ext: 'mp4',
+        resolution: '1920x1080',
+        vcodec: 'h264',
+        acodec: 'mp4a',
+        hasVideo: true,
+        filesize: null,
+      },
+      {
+        format_id: '22',
+        ext: 'mp4',
+        resolution: '1280x720',
+        vcodec: 'h264',
+        acodec: 'mp4a',
+        hasVideo: true,
+        filesize: null,
+      },
+      {
+        format_id: '18',
+        ext: 'mp4',
+        resolution: '640x360',
+        vcodec: 'h264',
+        acodec: 'mp4a',
+        hasVideo: true,
+        filesize: null,
+      },
+    ],
+  };
+
+  videoInfoCache.set(url, result);
+  return result;
+};
+
+const resolveQualityFromFormat = (fmt) => {
+  if (!fmt) return null;
+  const h = fmt.height || (fmt.resolution?.match(/(\d+)x(\d+)/)?.[2]) || (fmt.resolution?.match(/(\d+)p/)?.[1]);
+  const numH = parseInt(h, 10);
+  if (numH >= 1080) return '1080';
+  if (numH >= 720) return '720';
+  if (numH >= 480) return '480';
+  if (numH >= 360) return '360';
+  if (numH >= 240) return '240';
+  if (numH >= 144) return '144';
+  return null;
+};
+
+const mapFormatIdToQuality = (formatId, cachedFormats = []) => {
+  if (!formatId || formatId === 'best') {
+    const topVideo = (cachedFormats || []).find((f) => f.vcodec !== 'none' || f.hasVideo);
+    if (topVideo) {
+      const q = resolveQualityFromFormat(topVideo);
+      if (q) return q;
+    }
+    return '1080';
+  }
+
+  const itagMap = {
+    '137': '1080', '248': '1080', '399': '1080',
+    '22': '720', '136': '720', '247': '720', '398': '720',
+    '135': '480', '244': '480', '397': '480',
+    '18': '360', '134': '360', '243': '360', '396': '360',
+    '133': '240', '242': '240',
+    '160': '144',
+  };
+  if (itagMap[String(formatId)]) {
+    return itagMap[String(formatId)];
+  }
+
+  const matched = (cachedFormats || []).find(
+    (f) => String(f.format_id || f.formatId) === String(formatId)
+  );
+  if (matched) {
+    const q = resolveQualityFromFormat(matched);
+    if (q) return q;
+  }
+
+  const str = String(formatId);
+  if (str.includes('1080')) return '1080';
+  if (str.includes('720')) return '720';
+  if (str.includes('480')) return '480';
+  if (str.includes('360')) return '360';
+  if (str.includes('240')) return '240';
+  if (str.includes('144')) return '144';
+
+  return '720';
+};
+
 export const downloadVideo = async (url, formatId, type) => {
+  const videoId = extractYouTubeId(url);
+  if (!videoId) {
+    throw new Error('Invalid YouTube URL.');
+  }
+
+  const cached = videoInfoCache.get(url);
+  const targetQuality = mapFormatIdToQuality(formatId, cached?.formats);
+
+  // 1. Tier 1: Y2Mate / cnv.cx Direct Tunnel Streaming Engine
+  try {
+    process.stdout.write(`[youtubeService] Tier 1: Requesting Y2Mate stream for ${videoId} with quality ${targetQuality} (formatId: ${formatId || 'best'})\n`);
+    let y2mateStreamUrl = await fetchY2MateStream(videoId, targetQuality, type);
+
+    if (!y2mateStreamUrl && targetQuality !== '720') {
+      process.stdout.write(`[youtubeService] Quality ${targetQuality} unavailable on Y2Mate for ${videoId}, falling back to 720\n`);
+      y2mateStreamUrl = await fetchY2MateStream(videoId, '720', type);
+    }
+
+    if (y2mateStreamUrl) {
+      return new Promise((resolve, reject) => {
+        const parsed = new URL(y2mateStreamUrl);
+        const client = parsed.protocol === 'http:' ? http : https;
+        const req = client.get(
+          y2mateStreamUrl,
+          {
+            headers: {
+              'User-Agent':
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+              'Referer': 'https://frame.y2meta-uk.com/',
+              'Accept': '*/*',
+            },
+            timeout: 30000,
+          },
+          (res) => {
+            if (res.statusCode >= 200 && res.statusCode < 300) {
+              const contentLength = res.headers['content-length'];
+              process.stdout.write(`[youtubeService] Y2Mate stream connected (quality: ${targetQuality}, size: ${contentLength ? `${Math.round(contentLength / 1048576)} MB` : 'unknown'})\n`);
+              resolve(res);
+            } else {
+              reject(new Error(`Y2Mate stream failed with status ${res.statusCode}`));
+            }
+          }
+        );
+        req.on('error', reject);
+        req.on('timeout', () => req.destroy(new Error('Y2Mate stream connection timeout')));
+      });
+    }
+  } catch (err) {
+    process.stdout.write(`[youtubeService] Tier 1 Y2Mate stream failed: ${err.message}\n`);
+  }
+
+  // 2. Tier 3: Invidious stream fallback
   try {
     const info = await fetchVideoInfo(url);
-    let streamUrl = null;
-
     const videoFormats = Array.isArray(info.formats)
       ? info.formats.filter((f) => f.vcodec !== 'none' && f.format_note !== 'storyboard' && !f.format_id?.startsWith('sb'))
       : [];
 
-    if (type === 'audio') {
-      streamUrl =
-        info.audioUrl ||
-        info.formats?.find((f) => f.acodec !== 'none')?.url ||
-        info.formats?.[0]?.url;
-    } else {
-      const matchedFormat = formatId
-        ? info.formats?.find((f) => f.format_id === String(formatId))
-        : null;
-      streamUrl = matchedFormat?.url || videoFormats[0]?.url || info.formats?.[0]?.url;
+    let matchedFormat = null;
+    if (formatId && formatId !== 'best') {
+      matchedFormat = videoFormats.find((f) => String(f.format_id) === String(formatId) || String(f.formatId) === String(formatId));
+      if (!matchedFormat && targetQuality) {
+        matchedFormat = videoFormats.find((f) => (f.resolution || '').includes(targetQuality));
+      }
     }
 
+    const streamUrl = matchedFormat?.url || videoFormats[0]?.url || info.formats?.[0]?.url;
     if (streamUrl && !streamUrl.includes('/storyboard')) {
+      process.stdout.write(`[youtubeService] Tier 3 Invidious streaming format ${matchedFormat?.format_id || videoFormats[0]?.format_id || 'first-available'}\n`);
       return await getStreamWithRedirects(streamUrl);
     }
   } catch (err) {
-    process.stdout.write(`[youtubeService] Invidious stream failed, falling back to yt-dlp: ${err.message}\n`);
+    process.stdout.write(`[youtubeService] Tier 3 Invidious stream failed: ${err.message}\n`);
   }
 
-  return ytdlpService.downloadVideo(url, formatId, type);
+  // If all failed, throw friendly error
+  throw new Error('We are unable to fulfill the request for YouTube right now. Please retry after some time, or try our other supported platforms.');
 };

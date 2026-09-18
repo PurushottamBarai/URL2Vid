@@ -10,6 +10,17 @@ import { detectPlatform } from "../utils/platformDetector.js";
 
 const FORMAT_ID_PATTERN = /^[a-zA-Z0-9_-]+$/;
 
+const downloadStatusMap = new Map();
+
+const getDownloadStatus = (req, res) => {
+  const { downloadId } = req.query;
+  if (!downloadId) {
+    return res.status(400).json({ error: "Missing downloadId" });
+  }
+  const status = downloadStatusMap.get(downloadId) || 'pending';
+  res.json({ status });
+};
+
 const resolveMediaStream = async (platform, url, formatId, type) => {
   switch (platform) {
     case "youtube":
@@ -45,9 +56,14 @@ const resolveMediaStream = async (platform, url, formatId, type) => {
 };
 
 const downloadMedia = async (req, res, next) => {
-  const { url, formatId, type, bitrate } = req.query;
+  const { url, formatId, type, bitrate, downloadId } = req.query;
+
+  if (downloadId) {
+    downloadStatusMap.set(downloadId, 'pending');
+  }
 
   if (formatId && !FORMAT_ID_PATTERN.test(formatId)) {
+    if (downloadId) downloadStatusMap.set(downloadId, 'error');
     return res.status(400).json({ error: "Invalid formatId provided." });
   }
 
@@ -63,6 +79,11 @@ const downloadMedia = async (req, res, next) => {
     );
     res.header("Content-Type", isAudio ? "audio/mpeg" : "video/mp4");
     res.flushHeaders();
+
+    if (downloadId) {
+      downloadStatusMap.set(downloadId, 'started');
+      setTimeout(() => downloadStatusMap.delete(downloadId), 60000);
+    }
 
     const cleanup = () => {
       if (
@@ -94,11 +115,19 @@ const downloadMedia = async (req, res, next) => {
 
     mediaStream.pipe(res);
     mediaStream.on("error", (err) => {
-      process.stderr.write(`[download] Stream error: ${err.message}\n`);
+      if (err.message !== "aborted" && err.code !== "ECONNRESET") {
+        process.stderr.write(`[download] Stream error: ${err.message}\n`);
+      }
       cleanup();
-      res.end();
+      if (!res.headersSent || !res.writableEnded) {
+        res.end();
+      }
     });
   } catch (error) {
+    if (req.query.downloadId) {
+      downloadStatusMap.set(req.query.downloadId, 'error');
+      setTimeout(() => downloadStatusMap.delete(req.query.downloadId), 60000);
+    }
     if (!res.headersSent) {
       next(error);
     } else {
@@ -110,4 +139,4 @@ const downloadMedia = async (req, res, next) => {
   }
 };
 
-export { downloadMedia };
+export { downloadMedia, getDownloadStatus };

@@ -1,0 +1,16 @@
+{
+  "navVideoGuide": "Guide vidéo",
+  "navPlatforms": "Plateformes",
+  "navSupportedSites": "Sites pris en charge",
+  "navFaq": "FAQ",
+  "navPasteUrl": "Collé l’URL",
+  "navPasteDownload": "Coller et télécharger la vidéo",
+  "heroTitle": "Télécharger la vidéo à partir de l'URL",
+  "heroSubtitle": "Téléchargeur vidéo en ligne gratuit — collez n'importe quelle URL à partir de vos plateformes préférées.",
+  "pasteUrlLabel": "Coller l'URL de la vidéo",
+  "pasteUrlPlaceholder": "https://...",
+  "formatVideo": "Vidéo MP4",
+  "formatAudio": "Audio MP3",
+  "formatMute": "Mise en sourdine de la vidéo (MP4)",
+  "extract": "Extraire"
+}

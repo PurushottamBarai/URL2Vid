@@ -1,0 +1,16 @@
+{
+  "navVideoGuide": "Guia para vídeo",
+  "navPlatforms": "Plataformas",
+  "navSupportedSites": "Sites Suportados",
+  "navFaq": "Perguntas Frequentes",
+  "navPasteUrl": "Colar URL",
+  "navPasteDownload": "Colar e baixar vídeo",
+  "heroTitle": "Baixar vídeo do URL",
+  "heroSubtitle": "Baixador de vídeo online gratuito — cole qualquer URL das suas plataformas favoritas.",
+  "pasteUrlLabel": "Colar URL do vídeo",
+  "pasteUrlPlaceholder": "https://...",
+  "formatVideo": "Video (MP4)",
+  "formatAudio": "Audio MP3",
+  "formatMute": "Silenciar vídeo (MP4)",
+  "extract": "Extrato"
+}

@@ -1,0 +1,16 @@
+{
+  "navVideoGuide": "Ghid video",
+  "navPlatforms": "Platforme",
+  "navSupportedSites": "Site-uri acceptate",
+  "navFaq": "Întrebări frecvente",
+  "navPasteUrl": "Lipiți URL-ul",
+  "navPasteDownload": "Inserați și descărcați videoclipul",
+  "heroTitle": "Descărcați videoclipul de la adresa URL",
+  "heroSubtitle": "Descărcător video online gratuit — inserați orice adresă URL de pe platformele preferate.",
+  "pasteUrlLabel": "Lipiți URL-ul videoclipului",
+  "pasteUrlPlaceholder": "https://...",
+  "formatVideo": "Video (MP4)",
+  "formatAudio": "Audio (Mp3)",
+  "formatMute": "Dezactivați sunetul videoclipului (MP4)",
+  "extract": "Extract"
+}

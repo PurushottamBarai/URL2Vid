@@ -87,7 +87,12 @@ const getInfo = async (req, res, next) => {
       thumbnail: info.thumbnail,
       duration: info.duration,
       formats: availableFormats,
+      embedDownloadUrl: info.embedDownloadUrl || null,
+      y2mateUrl: info.y2mateUrl || null,
+      isEmbedFallback: Boolean(info.isEmbedFallback),
+      videoId: info.videoId || null,
       audioAvailable:
+        Boolean(info.isEmbedFallback) ||
         (Array.isArray(info.formats) &&
           info.formats.some((f) => f.acodec !== "none")) ||
         Boolean(info.audioUrl),

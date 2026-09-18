@@ -40,11 +40,8 @@ export const useVideoExtraction = () => {
 
       const serverError = err.response?.data?.error;
       const rawErrorText = `${serverError || ''} ${err.message || ''}`;
-      const isYouTube =
-        /youtube\.com|youtu\.be/i.test(url) ||
-        /youtube/i.test(rawErrorText) ||
-        /bot/i.test(rawErrorText) ||
-        /player response/i.test(rawErrorText);
+      const isYouTube = /youtube\.com|youtu\.be/i.test(url);
+
 
       if (
         isYouTube &&

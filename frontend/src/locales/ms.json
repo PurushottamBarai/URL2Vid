@@ -1,0 +1,16 @@
+{
+  "navVideoGuide": "Panduan Video",
+  "navPlatforms": "Platform",
+  "navSupportedSites": "Laman web sokongan",
+  "navFaq": "Soalan Lazim",
+  "navPasteUrl": "Tampal URL",
+  "navPasteDownload": "Tampal & Muat Turun Video",
+  "heroTitle": "Muat Turun Video Daripada URL",
+  "heroSubtitle": "Pemuat turun video dalam talian percuma — tampal sebarang URL dari platform kegemaran anda.",
+  "pasteUrlLabel": "Tampal URL Video",
+  "pasteUrlPlaceholder": "https://...",
+  "formatVideo": "Video (MP4)",
+  "formatAudio": "Audio (MP3)",
+  "formatMute": "Senyapkan Video (MP4)",
+  "extract": "Ekstrak"
+}

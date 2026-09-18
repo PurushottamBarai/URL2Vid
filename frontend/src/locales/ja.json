@@ -1,0 +1,16 @@
+{
+  "navVideoGuide": "ビデオ ガイド",
+  "navPlatforms": "プラットフォーム",
+  "navSupportedSites": "サポートサイト",
+  "navFaq": "よくあるご質問（FAQ）",
+  "navPasteUrl": "URL をペーストまたは入力して検索",
+  "navPasteDownload": "ビデオをペーストしてダウンロード",
+  "heroTitle": "URLからビデオをダウンロード",
+  "heroSubtitle": "無料のオンラインビデオダウンローダー—お気に入りのプラットフォームから任意のURLを貼り付けます。",
+  "pasteUrlLabel": "動画URLを貼り付け",
+  "pasteUrlPlaceholder": "https://...",
+  "formatVideo": "動画 (MP4)",
+  "formatAudio": "オーディオ（ MP 3 ）",
+  "formatMute": "動画 (MP4)",
+  "extract": "抽出"
+}

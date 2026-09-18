@@ -1,0 +1,16 @@
+{
+  "navVideoGuide": "hướng dẫn bằng video",
+  "navPlatforms": "Nền tảng",
+  "navSupportedSites": "Trang được hỗ trợ",
+  "navFaq": "Câu hỏi thường gặp",
+  "navPasteUrl": "Dán URL",
+  "navPasteDownload": "Dán và tải xuống video",
+  "heroTitle": "Tải xuống video từ URL",
+  "heroSubtitle": "Trình tải xuống video trực tuyến miễn phí — dán bất kỳ URL nào từ các nền tảng yêu thích của bạn.",
+  "pasteUrlLabel": "Dán URL video",
+  "pasteUrlPlaceholder": "https://...",
+  "formatVideo": "Video (MP4)",
+  "formatAudio": "Âm thanh (MP3)",
+  "formatMute": "Tắt tiếng video (MP4)",
+  "extract": "Chiết Xuất"
+}

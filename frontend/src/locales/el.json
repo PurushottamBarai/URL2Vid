@@ -1,0 +1,16 @@
+{
+  "navVideoGuide": "Οδηγός βίντεο",
+  "navPlatforms": "Πλατφόρμες",
+  "navSupportedSites": "Υποστηριζόμενοι ιστότοποι",
+  "navFaq": "Συχνές Ερωτήσεις",
+  "navPasteUrl": "Επικόλληση URL συνδέσμου",
+  "navPasteDownload": "Επικόλληση και λήψη βίντεο",
+  "heroTitle": "Λήψη βίντεο από τη διεύθυνση URL",
+  "heroSubtitle": "Δωρεάν λήψη βίντεο στο διαδίκτυο — επικολλήστε οποιαδήποτε διεύθυνση URL από τις αγαπημένες σας πλατφόρμες.",
+  "pasteUrlLabel": "Επικολλήστε βίντεο URL εδώ",
+  "pasteUrlPlaceholder": "https://...",
+  "formatVideo": "Βίντεο (MP4)",
+  "formatAudio": "ήχου: MP3,",
+  "formatMute": "Σίγαση βίντεο (MP4)",
+  "extract": "#-#-#-#-#  file-roller.master.el.po (el)  #-#-#-#-#Αποσυμπίεση#-#-#-#-#  rhythmbox.master.el.po (el)  #-#-#-#-#Εξαγωγή#-#-#-#-#  sound-juicer.master.el.po (el)  #-#-#-#-#Εξαγωγή"
+}

@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import PropTypes from 'prop-types';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Download } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 
 const formatDuration = (sec) => {
@@ -15,13 +15,14 @@ const formatDuration = (sec) => {
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 };
 
-const formatBytes = (bytes) => {
+const formatBytes = (bytes, isEstimated = false) => {
   if (!bytes || isNaN(bytes) || bytes <= 0) return null;
   const mb = bytes / 1048576;
+  const prefix = isEstimated ? '~' : '';
   if (mb < 0.1) {
-    return `${Math.round(bytes / 1024)} KB`;
+    return `${prefix}${Math.round(bytes / 1024)} KB`;
   }
-  return `${mb.toFixed(1)} MB`;
+  return `${prefix}${mb.toFixed(1)} MB`;
 };
 
 const AUDIO_TIERS = [
@@ -42,6 +43,9 @@ const getAudioTierSize = (tier, duration, fallbackVideoSize) => {
 };
 
 const formatLabel = (fmt, durationSec, topFilesize) => {
+  if (fmt.sizeLabel) {
+    return `${fmt.resolution || 'Unknown'} ${fmt.ext ? `(.${fmt.ext})` : ''} • ${fmt.sizeLabel}`;
+  }
   let sizeBytes = fmt.filesize;
   if (!sizeBytes && durationSec && fmt.tbr) {
     sizeBytes = Math.round((fmt.tbr * 1000 * durationSec) / 8);
@@ -49,17 +53,26 @@ const formatLabel = (fmt, durationSec, topFilesize) => {
   if (!sizeBytes && topFilesize) {
     sizeBytes = topFilesize;
   }
-  const sizeStr = formatBytes(sizeBytes);
+  const isEstimated = Boolean(fmt.isEstimated || (!fmt.filesize && sizeBytes));
+  const sizeStr = formatBytes(sizeBytes, isEstimated);
   return `${fmt.resolution || 'Unknown'} ${fmt.ext ? `(.${fmt.ext})` : ''}${sizeStr ? ` • ${sizeStr}` : ''}`;
 };
 
 const VideoResults = React.memo(({ data, originalUrl, initialFormat = 'video' }) => {
   const isAudio = initialFormat === 'audio';
   const [selectedFormat, setSelectedFormat] = useState(isAudio ? '192k' : 'best');
+  const [isDownloading, setIsDownloading] = useState(false);
+  const pollTimerRef = useRef(null);
 
   useEffect(() => {
     setSelectedFormat(isAudio ? '192k' : 'best');
   }, [isAudio]);
+
+  useEffect(() => {
+    return () => {
+      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+    };
+  }, []);
 
   if (!data) return null;
 
@@ -91,7 +104,8 @@ const VideoResults = React.memo(({ data, originalUrl, initialFormat = 'video' })
 
   const defaultVideoOptionLabel = useMemo(() => {
     const topSize = topVideoFormat?.filesize;
-    const sizeStr = topSize ? formatBytes(topSize) : '';
+    const isEstimated = Boolean(topVideoFormat?.isEstimated);
+    const sizeStr = topVideoFormat?.sizeLabel || (topSize ? formatBytes(topSize, isEstimated) : '');
     const metaStr = sizeStr ? ` • ${sizeStr}` : '';
 
     if (initialFormat === 'mute') {
@@ -100,11 +114,15 @@ const VideoResults = React.memo(({ data, originalUrl, initialFormat = 'video' })
     return `Best Video (MP4)${metaStr}`;
   }, [initialFormat, topVideoFormat]);
 
-
   const handleDownload = () => {
+    if (isDownloading) return;
+    setIsDownloading(true);
+
+    const downloadId = `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
     const url = new URL(`${API_BASE_URL}/download`, window.location.origin);
     url.searchParams.set('url', originalUrl);
     url.searchParams.set('type', initialFormat || 'video');
+    url.searchParams.set('downloadId', downloadId);
 
     if (isAudio) {
       const bitrate = selectedFormat === 'best' ? '192k' : selectedFormat;
@@ -119,7 +137,29 @@ const VideoResults = React.memo(({ data, originalUrl, initialFormat = 'video' })
     const link = document.createElement('a');
     link.href = url.toString();
     link.download = '';
+    document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
+
+    if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+    const startTime = Date.now();
+    pollTimerRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/download/status?downloadId=${downloadId}`);
+        const statusData = await res.json();
+        if (statusData.status === 'started' || statusData.status === 'error' || Date.now() - startTime > 12000) {
+          clearInterval(pollTimerRef.current);
+          pollTimerRef.current = null;
+          setIsDownloading(false);
+        }
+      } catch {
+        if (Date.now() - startTime > 4000) {
+          clearInterval(pollTimerRef.current);
+          pollTimerRef.current = null;
+          setIsDownloading(false);
+        }
+      }
+    }, 300);
   };
 
   return (
@@ -142,7 +182,7 @@ const VideoResults = React.memo(({ data, originalUrl, initialFormat = 'video' })
               {data.title || 'Extracted Video'}
             </h2>
             <p className="text-text-secondary font-mono text-sm">
-              {formattedDuration || 'Unknown length'}
+              {formattedDuration || 'Ready to download'}
             </p>
           </div>
 
@@ -182,9 +222,18 @@ const VideoResults = React.memo(({ data, originalUrl, initialFormat = 'video' })
 
             <button
               onClick={handleDownload}
-              className="w-full py-4 text-lg rounded-md font-bold transition-colors border border-accent text-accent hover:bg-accent/10 focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-base outline-none active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
+              disabled={isDownloading}
+              className="w-full py-4 text-lg rounded-md font-bold transition-colors border border-accent text-accent hover:bg-accent/10 focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-base outline-none active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
+              aria-label="Download file"
             >
-              Download file
+              {isDownloading ? (
+                <div className="w-5 h-5 border-2 border-accent/30 border-t-accent rounded-full animate-spin"></div>
+              ) : (
+                <>
+                  <Download className="w-5 h-5" aria-hidden="true" />
+                  <span>Download file</span>
+                </>
+              )}
             </button>
           </div>
         </div>

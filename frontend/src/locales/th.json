@@ -1,0 +1,16 @@
+{
+  "navVideoGuide": "คู่มือวิดีโอ",
+  "navPlatforms": "แพลตฟอร์ม",
+  "navSupportedSites": "เว็บไซต์ที่ได้รับการสนับสนุน",
+  "navFaq": "คำถามที่พบบ่อย",
+  "navPasteUrl": "วาง URL",
+  "navPasteDownload": "วางและดาวน์โหลดวิดีโอ",
+  "heroTitle": "ดาวน์โหลดวิดีโอจาก URL",
+  "heroSubtitle": "ดาวน์โหลดวิดีโอออนไลน์ฟรี — วาง URL ใดๆจากแพลตฟอร์มโปรดของคุณ",
+  "pasteUrlLabel": "วาง URL วิดีโอ",
+  "pasteUrlPlaceholder": "https://...",
+  "formatVideo": "วิดีโอ (MP4)",
+  "formatAudio": "เสียง (MP3)",
+  "formatMute": "ปิดเสียงวิดีโอ (MP4)",
+  "extract": "แยกข้อมูล"
+}

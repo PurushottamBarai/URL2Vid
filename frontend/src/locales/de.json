@@ -1,0 +1,16 @@
+{
+  "navVideoGuide": "Video-Guide",
+  "navPlatforms": "Podeste",
+  "navSupportedSites": "Unterstützte Seiten",
+  "navFaq": "FAQ",
+  "navPasteUrl": "URL einfügen",
+  "navPasteDownload": "Video einfügen und herunterladen",
+  "heroTitle": "Herunterladen Video aus:",
+  "heroSubtitle": "Kostenloser Online-Video-Downloader — fügen Sie eine beliebige URL von Ihren Lieblingsplattformen ein.",
+  "pasteUrlLabel": "Video URL hier einfügen",
+  "pasteUrlPlaceholder": "https://...",
+  "formatVideo": "Video (MP4)",
+  "formatAudio": "Audio (MP3)",
+  "formatMute": "Video (MP4)",
+  "extract": "Auszug"
+}

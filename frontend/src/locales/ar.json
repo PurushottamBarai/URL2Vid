@@ -1,0 +1,16 @@
+{
+  "navVideoGuide": "الفيديو التوجيهي",
+  "navPlatforms": "المنصات",
+  "navSupportedSites": "المواقع المدعومة",
+  "navFaq": "الأسئلة الشائعة",
+  "navPasteUrl": "لصق رابط GIF",
+  "navPasteDownload": "لصق وتنزيل الفيديو",
+  "heroTitle": "تنزيل الفيديو من URL",
+  "heroSubtitle": "أداة تنزيل الفيديو المجانية عبر الإنترنت — الصق أي عنوان URL من الأنظمة الأساسية المفضلة لديك.",
+  "pasteUrlLabel": "انسخ رابط الفيديو هنا",
+  "pasteUrlPlaceholder": "https://...",
+  "formatVideo": "الفيديو MP4",
+  "formatAudio": "الصوت (MP3)",
+  "formatMute": "كتم الفيديو (MP4)",
+  "extract": "مقتطف"
+}

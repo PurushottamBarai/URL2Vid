@@ -1,0 +1,16 @@
+{
+  "navVideoGuide": "Przewodnik wideo",
+  "navPlatforms": "Platformy",
+  "navSupportedSites": "Obsługiwane witryny",
+  "navFaq": "NAJCZĘŚCIEJ ZADAWANE PYTANIA",
+  "navPasteUrl": "Wklej adres URL",
+  "navPasteDownload": "Wklej i pobierz wideo",
+  "heroTitle": "Pobierz film z adresu URL",
+  "heroSubtitle": "Darmowy program do pobierania wideo online — wklej dowolny adres URL z ulubionych platform.",
+  "pasteUrlLabel": "Wklej adres URL wideo",
+  "pasteUrlPlaceholder": "https://...",
+  "formatVideo": "Film MP4",
+  "formatAudio": "Audio (MP3)",
+  "formatMute": "Wycisz wideo (MP4)",
+  "extract": "Wypis"
+}

@@ -1,0 +1,16 @@
+{
+  "navVideoGuide": "视频指南",
+  "navPlatforms": "臺",
+  "navSupportedSites": "支持的站点：",
+  "navFaq": "常见问题解答",
+  "navPasteUrl": "粘贴 URL",
+  "navPasteDownload": "粘贴并下载视频",
+  "heroTitle": "从URL下载视频",
+  "heroSubtitle": "免费在线视频下载器—粘贴您最喜爱的平台的任何网址。",
+  "pasteUrlLabel": "粘贴视频网址",
+  "pasteUrlPlaceholder": "https://...",
+  "formatVideo": "视频 （mp4）",
+  "formatAudio": "MP3音频",
+  "formatMute": "视频 （mp4）",
+  "extract": "提取"
+}

@@ -1,0 +1,16 @@
+{
+  "navVideoGuide": "Video průvodce",
+  "navPlatforms": "Plošiny",
+  "navSupportedSites": "Podporované stránky",
+  "navFaq": "Časté dotazy",
+  "navPasteUrl": "Sem vložte URL",
+  "navPasteDownload": "Vložit a stáhnout video",
+  "heroTitle": "Stáhnout video z adresy URL",
+  "heroSubtitle": "Free online video downloader — vložte libovolnou adresu URL ze svých oblíbených platforem.",
+  "pasteUrlLabel": "Vlož URL adresu videa sem",
+  "pasteUrlPlaceholder": "https://...",
+  "formatVideo": "URL adresa videa (mp4)",
+  "formatAudio": "Audio (MP3)",
+  "formatMute": "Ztlumit video (MP4)",
+  "extract": "Výpis"
+}

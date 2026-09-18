@@ -1,0 +1,16 @@
+{
+  "navVideoGuide": "Video Rehberi",
+  "navPlatforms": "Platformlar",
+  "navSupportedSites": "Desteklenen siteler",
+  "navFaq": "SSS",
+  "navPasteUrl": "Sayfa URL'sini yapıştırın",
+  "navPasteDownload": "Videoyu Yapıştır ve İndir",
+  "heroTitle": "Videoyu URL'den İndir",
+  "heroSubtitle": "Ücretsiz çevrimiçi video indirici — favori platformlarınızdan herhangi bir URL'yi yapıştırın.",
+  "pasteUrlLabel": "Video URL'sini Yapıştır",
+  "pasteUrlPlaceholder": "https://...",
+  "formatVideo": "Video MP4",
+  "formatAudio": "Ses Mp3",
+  "formatMute": "Videoyu Sessize Al (MP4)",
+  "extract": "Ayıkla"
+}

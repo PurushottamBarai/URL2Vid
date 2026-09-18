@@ -1,0 +1,16 @@
+{
+  "navVideoGuide": "वीडियो गाइड",
+  "navPlatforms": "प्लेटफार्म",
+  "navSupportedSites": "समर्थित साइटें",
+  "navFaq": "अक्सर पूछे जाने वाले सवाल",
+  "navPasteUrl": "चिपकाएँ",
+  "navPasteDownload": "वीडियो पेस्ट करें और डाउनलोड करें",
+  "heroTitle": "URL से वीडियो डाउनलोड करें",
+  "heroSubtitle": "मुफ़्त ऑनलाइन वीडियो डाउनलोडर — अपने पसंदीदा प्लेटफ़ॉर्म से कोई भी URL पेस्ट करें।",
+  "pasteUrlLabel": "वीडियो URL पेस्ट करें",
+  "pasteUrlPlaceholder": "https://...",
+  "formatVideo": "वीडियो (MP4)",
+  "formatAudio": "ऑडियो (MP3)",
+  "formatMute": "म्यूट वीडियो (MP4)",
+  "extract": "सारु कढो"
+}

@@ -5,7 +5,6 @@ import os from "os";
 import http from "http";
 import https from "https";
 import { URL } from "url";
-import { execFileSync } from "child_process";
 import { randomUUID } from "crypto";
 import { videoInfoCache } from "../utils/cache.js";
 const TEMP_DIR = path.join(os.tmpdir(), "video-downloads");
@@ -17,21 +16,34 @@ const REDDIT_SHORT_LINK_REGEX =
 const isFacebookUrl = (url) =>
   typeof url === "string" && FACEBOOK_DOMAINS.some((d) => url.includes(d));
 
-const normalizeYouTubeUrl = (url) => {
+const normalizeUrl = (url) => {
   if (!url || typeof url !== "string") return url;
+  const ytWatchMatch = url.match(/(?:youtube\.com\/watch\?(?:.*&)?v=)([a-zA-Z0-9_-]{11})/i);
+  if (ytWatchMatch && ytWatchMatch[1]) {
+    return `https://www.youtube.com/watch?v=${ytWatchMatch[1]}`;
+  }
   const match = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/i);
   if (match && match[1]) {
     return `https://www.youtube.com/watch?v=${match[1]}`;
+  }
+  const vimeoMatch = url.match(
+    /vimeo\.com\/(?:channels\/[^/]+\/|groups\/[^/]+\/videos\/|album\/[^/]+\/video\/|video\/)?(\d+)/i,
+  );
+  if (vimeoMatch && vimeoMatch[1] && !url.includes("player.vimeo.com")) {
+    return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
   }
   return url;
 };
 
 const getYtdlpInstance = () => {
-  if (
-    process.env.YTDLP_CUSTOM_BINARY &&
-    fs.existsSync(process.env.YTDLP_CUSTOM_BINARY)
-  ) {
-    return ytdlp.create(process.env.YTDLP_CUSTOM_BINARY);
+  const isWin = process.platform === "win32";
+  const assetName = isWin ? "yt-dlp.exe" : "yt-dlp";
+  const tempPath = path.join(os.tmpdir(), assetName);
+  const binaryPath =
+    process.env.YTDLP_CUSTOM_BINARY || (fs.existsSync(tempPath) ? tempPath : null);
+
+  if (binaryPath && fs.existsSync(binaryPath)) {
+    return ytdlp.create(binaryPath);
   }
   return ytdlp;
 };
@@ -45,20 +57,16 @@ const resolveRedditShortLink = async (urlString) => {
     return urlString;
   }
   try {
-    const nullDevice = process.platform === "win32" ? "NUL" : "/dev/null";
-    const args = [
-      "-s",
-      "-o",
-      nullDevice,
-      "-w",
-      "%{url_effective}",
-      "-L",
-      urlString,
-    ];
-    const resolved = execFileSync("curl", args, {
-      encoding: "utf8",
-      timeout: 10000,
-    }).trim();
+    const res = await fetch(urlString, {
+      method: "GET",
+      redirect: "follow",
+      signal: AbortSignal.timeout(10000),
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+      },
+    });
+    const resolved = res.url;
     if (resolved && resolved !== urlString) {
       process.stdout.write(
         `[reddit resolver] Resolved short-link ${urlString} → ${resolved}\n`,
@@ -73,51 +81,12 @@ const resolveRedditShortLink = async (urlString) => {
   return urlString;
 };
 
-const resolveRedditShortLinkSync = (urlString) => {
-  if (
-    !urlString ||
-    typeof urlString !== "string" ||
-    !REDDIT_SHORT_LINK_REGEX.test(urlString)
-  ) {
-    return urlString;
-  }
-  try {
-    const nullDevice = process.platform === "win32" ? "NUL" : "/dev/null";
-    const args = [
-      "-s",
-      "-o",
-      nullDevice,
-      "-w",
-      "%{url_effective}",
-      "-L",
-      urlString,
-    ];
-    const resolved = execFileSync("curl", args, {
-      encoding: "utf8",
-      timeout: 10000,
-    }).trim();
-    if (resolved && resolved !== urlString) {
-      process.stdout.write(
-        `[reddit resolver sync] Resolved short-link ${urlString} → ${resolved}\n`,
-      );
-      return resolved;
-    }
-  } catch (err) {
-    process.stderr.write(
-      `[reddit resolver sync] Resolution failed for ${urlString}: ${err.message}\n`,
-    );
-  }
-  return urlString;
-};
-
 const prepareTargetUrl = async (url) =>
-  normalizeYouTubeUrl(await resolveRedditShortLink(url));
-
-const prepareTargetUrlSync = (url) =>
-  normalizeYouTubeUrl(resolveRedditShortLinkSync(url));
+  normalizeUrl(await resolveRedditShortLink(url));
 
 const applyCommonFlags = (targetUrl, baseFlags) => {
   return {
+    noPlaylist: true,
     extractorArgs: "youtube:player_client=android;player_skip=webpage,configs",
     ...baseFlags,
   };
@@ -133,13 +102,45 @@ const formatAndLogStderr = (fnName, url, error) => {
   );
 };
 
-const executeWithFallback = async (fnName, targetUrl, flags, execAction) => {
-  try {
-    return await execAction(flags);
-  } catch (error) {
-    formatAndLogStderr(fnName, targetUrl, error);
-    throw error;
+const parsedLimit = parseInt(process.env.MAX_CONCURRENT_JOBS, 10);
+const MAX_CONCURRENT_JOBS =
+  Number.isInteger(parsedLimit) && parsedLimit > 0 ? parsedLimit : 3;
+
+class ConcurrencyLimiter {
+  constructor(max) {
+    this.max = max;
+    this.running = 0;
+    this.queue = [];
   }
+
+  async run(fn) {
+    if (this.running >= this.max) {
+      await new Promise((resolve) => this.queue.push(resolve));
+    }
+    this.running++;
+    try {
+      return await fn();
+    } finally {
+      this.running--;
+      if (this.queue.length > 0) {
+        const next = this.queue.shift();
+        next();
+      }
+    }
+  }
+}
+
+const jobLimiter = new ConcurrencyLimiter(MAX_CONCURRENT_JOBS);
+
+const executeWithFallback = async (fnName, targetUrl, flags, execAction) => {
+  return jobLimiter.run(async () => {
+    try {
+      return await execAction(flags);
+    } catch (error) {
+      formatAndLogStderr(fnName, targetUrl, error);
+      throw error;
+    }
+  });
 };
 
 const fetchVideoInfo = async (url) => {
@@ -168,9 +169,24 @@ const fetchVideoInfo = async (url) => {
     "fetchVideoInfo",
     targetUrl,
     flags,
-    (runFlags) => {
+    async (runFlags) => {
       const ytdlpExec = getYtdlpInstance();
-      return ytdlpExec(targetUrl, runFlags);
+      const { stdout } = await ytdlpExec.exec(targetUrl, runFlags);
+      const trimmed = (stdout || "").trim();
+      try {
+        return JSON.parse(trimmed);
+      } catch (parseErr) {
+        const lines = trimmed.split("\n");
+        for (const line of lines) {
+          const l = line.trim();
+          if (l.startsWith("{")) {
+            try {
+              return JSON.parse(l);
+            } catch {}
+          }
+        }
+        throw parseErr;
+      }
     },
   );
 

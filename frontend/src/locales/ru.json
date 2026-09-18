@@ -1,0 +1,16 @@
+{
+  "navVideoGuide": "Видео руководство",
+  "navPlatforms": "Платформы",
+  "navSupportedSites": "Поддерживаемые сайты",
+  "navFaq": "Часто задаваемые вопросы",
+  "navPasteUrl": "Вставить URL",
+  "navPasteDownload": "Вставить и загрузить видео",
+  "heroTitle": "Загрузить видео с URL-адреса",
+  "heroSubtitle": "Бесплатный онлайн загрузчик видео — вставьте любой URL с ваших любимых платформ.",
+  "pasteUrlLabel": "Вставить ссылку на видео",
+  "pasteUrlPlaceholder": "https://...",
+  "formatVideo": "Видео (mp4)",
+  "formatAudio": "Audio (MP3)",
+  "formatMute": "Видео (mp4)",
+  "extract": "Выписка"
+}

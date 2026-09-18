@@ -1,0 +1,16 @@
+{
+  "navVideoGuide": "ভিডিও ইউজার গাইড",
+  "navPlatforms": "প্ল্যাটফর্ম",
+  "navSupportedSites": "সমর্থিত সাইট",
+  "navFaq": "প্রায়শই জিজ্ঞাসিত প্রশ্নাবলী",
+  "navPasteUrl": "URL পেস্ট করুন",
+  "navPasteDownload": "ভিডিও পেস্ট করুন এবং ডাউনলোড করুন",
+  "heroTitle": "URL থেকে ভিডিও ডাউনলোড করুন",
+  "heroSubtitle": "বিনামূল্যে অনলাইন ভিডিও ডাউনলোডার — আপনার প্রিয় প্ল্যাটফর্ম থেকে যে কোনও URL পেস্ট করুন ।",
+  "pasteUrlLabel": "ভিডিও URL পেস্ট করুন",
+  "pasteUrlPlaceholder": "https://...",
+  "formatVideo": "ভিডিও (MP4)",
+  "formatAudio": "অডিও (MP3)",
+  "formatMute": "নিঃশব্দ ভিডিও (MP4)",
+  "extract": "এক্সট্র্যাক্ট করো"
+}

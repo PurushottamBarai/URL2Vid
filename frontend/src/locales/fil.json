@@ -1,0 +1,16 @@
+{
+  "navVideoGuide": "Gabay sa Bidyo",
+  "navPlatforms": "Mga Platform",
+  "navSupportedSites": "Mga Sinusuportahang Site",
+  "navFaq": "FAQ",
+  "navPasteUrl": "I-paste ang URL",
+  "navPasteDownload": "I-paste at I-download ang Video",
+  "heroTitle": "I-download ang Video Mula sa URL",
+  "heroSubtitle": "Libreng online na pang-download ng video — i-paste ang anumang URL mula sa iyong mga paboritong platform.",
+  "pasteUrlLabel": "I-paste ang URL ng Video",
+  "pasteUrlPlaceholder": "https://...",
+  "formatVideo": "Bidyo (MP4)",
+  "formatAudio": "Tunog (MP3)",
+  "formatMute": "I-mute ang Video (MP4)",
+  "extract": "Extract"
+}

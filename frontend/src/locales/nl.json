@@ -1,0 +1,16 @@
+{
+  "navVideoGuide": "Videogids",
+  "navPlatforms": "Platforms",
+  "navSupportedSites": "Ondersteunde sites.",
+  "navFaq": "Veelgestelde vragen",
+  "navPasteUrl": "Plak URL hier...",
+  "navPasteDownload": "Video plakken en downloaden",
+  "heroTitle": "Video downloaden van URL",
+  "heroSubtitle": "Gratis online video-downloader — plak elke URL van je favoriete platforms.",
+  "pasteUrlLabel": "Plak de video URL hier...",
+  "pasteUrlPlaceholder": "https://...",
+  "formatVideo": "Video (MP4)",
+  "formatAudio": "Audio (MP3)",
+  "formatMute": "Video (mp4)",
+  "extract": "Uittreksel"
+}

@@ -1,12 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Download } from 'lucide-react';
 import { checkUrlStatus } from '../utils/urlValidation.js';
+import { useLanguage } from '../context/LanguageContext';
+
+const STATUS_MESSAGES = [
+  "Fetching...",
+  "Retrieving...",
+  "Receiving data...",
+  "Preparing transfer...",
+  "Finalizing...",
+];
 
 const Hero = React.memo(({ onFetch, isLoading, customTitle, customSubtitle }) => {
+  const { t } = useLanguage();
   const [url, setUrl] = useState('');
   const [error, setError] = useState('');
   const [format, setFormat] = useState('best');
+  const [statusIndex, setStatusIndex] = useState(0);
+
+  useEffect(() => {
+    if (!isLoading) {
+      setStatusIndex(0);
+      return;
+    }
+    const timer = setInterval(() => {
+      setStatusIndex((prev) => (prev + 1) % STATUS_MESSAGES.length);
+    }, 3600);
+    return () => clearInterval(timer);
+  }, [isLoading]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -27,10 +49,10 @@ const Hero = React.memo(({ onFetch, isLoading, customTitle, customSubtitle }) =>
     <div className="flex flex-col items-center w-full animate-slide-up">
       <div className="flex flex-col items-center text-center mb-8">
         <h1 className="text-4xl md:text-5xl font-bold text-text-primary mb-4 tracking-tight">
-          {customTitle || 'Download Video From URL'}
+          {customTitle || t('heroTitle')}
         </h1>
         <p className="hero-subtitle text-text-secondary max-w-2xl text-sm md:text-[16px] leading-relaxed">
-          {customSubtitle || 'Free online video downloader — paste any URL from your favorite platforms.'}
+          {customSubtitle || t('heroSubtitle')}
         </p>
       </div>
       
@@ -42,7 +64,7 @@ const Hero = React.memo(({ onFetch, isLoading, customTitle, customSubtitle }) =>
                 htmlFor="video-url-input"
                 className="text-xs font-bold text-text-secondary tracking-widest uppercase mb-2 block"
               >
-                Paste Video URL
+                {t('pasteUrlLabel')}
               </label>
               <input
                 id="video-url-input"
@@ -75,23 +97,26 @@ const Hero = React.memo(({ onFetch, isLoading, customTitle, customSubtitle }) =>
                 className="input-field w-2/5 sm:w-1/3 font-mono text-sm cursor-pointer font-medium"
                 aria-label="Format selection"
               >
-                <option value="best">Video (MP4)</option>
-                <option value="audio">Audio (MP3)</option>
-                <option value="mute">Mute Video (MP4)</option>
+                <option value="best">{t('formatVideo')}</option>
+                <option value="audio">{t('formatAudio')}</option>
+                <option value="mute">{t('formatMute')}</option>
               </select>
               
               <button
                 type="submit"
                 disabled={isLoading || !url}
-                className="btn-primary flex-1 py-3 text-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
+                className="btn-primary flex-1 py-3 text-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 cursor-pointer"
                 aria-label="Extract video"
               >
                 {isLoading ? (
-                  <div className="w-5 h-5 border-2 border-surface/30 border-t-surface rounded-full animate-spin"></div>
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-surface/30 border-t-surface rounded-full animate-spin"></div>
+                    <span className="text-base font-medium">{STATUS_MESSAGES[statusIndex]}</span>
+                  </div>
                 ) : (
                   <>
                     <Download className="w-5 h-5" aria-hidden="true" />
-                    <span>Extract</span>
+                    <span>{t('extract')}</span>
                   </>
                 )}
               </button>

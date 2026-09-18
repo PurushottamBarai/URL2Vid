@@ -1,0 +1,16 @@
+{
+  "navVideoGuide": "Panduan Video",
+  "navPlatforms": "Platform",
+  "navSupportedSites": "Situs yang Didukung",
+  "navFaq": "Pertanyaan Umum",
+  "navPasteUrl": "Tempel URL",
+  "navPasteDownload": "Tempel & Unduh Video",
+  "heroTitle": "Unduh Video Dari URL",
+  "heroSubtitle": "Pengunduh video online gratis — tempelkan URL apa pun dari platform favorit Anda.",
+  "pasteUrlLabel": "Tempel URL Video",
+  "pasteUrlPlaceholder": "https://...",
+  "formatVideo": "Video (MP4)",
+  "formatAudio": "Audio (MP3)",
+  "formatMute": "Mute Video (MP4)",
+  "extract": "Ekstrak"
+}
