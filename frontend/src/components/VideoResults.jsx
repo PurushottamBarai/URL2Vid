@@ -109,8 +109,11 @@ const VideoResults = React.memo(({ data, originalUrl, initialFormat = 'video' })
     if (isAudio) {
       const bitrate = selectedFormat === 'best' ? '192k' : selectedFormat;
       url.searchParams.set('bitrate', bitrate);
-    } else if (selectedFormat !== 'best' && selectedFormat !== initialFormat) {
-      url.searchParams.set('formatId', selectedFormat);
+    } else {
+      const targetFormatId = selectedFormat === 'best' ? topVideoFormat?.formatId : selectedFormat;
+      if (targetFormatId && targetFormatId !== 'video' && targetFormatId !== 'mute' && targetFormatId !== 'best') {
+        url.searchParams.set('formatId', targetFormatId);
+      }
     }
 
     const link = document.createElement('a');

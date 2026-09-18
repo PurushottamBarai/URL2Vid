@@ -222,35 +222,52 @@ const getHttpStream = (streamUrl, maxRedirects = 5) => {
 const downloadVideo = async (url, formatId, type) => {
   const targetUrl = await prepareTargetUrl(url);
 
-  // Fast-path: If a direct progressive MP4 stream (audio + video muxed) is cached, stream directly over HTTP
+  // Fast-path: Only direct stream if the user's specific format has progressive muxed audio+video,
+  // or if 'best' is requested and the top video format is ALREADY progressive (no separate higher-res streams exist)
   if (type !== "mute" && type !== "audio") {
     const cached = videoInfoCache.get(url);
     if (cached && Array.isArray(cached.formats)) {
-      const matched = formatId
-        ? cached.formats.find(
-            (f) =>
-              String(f.format_id) === String(formatId) ||
-              String(f.formatId) === String(formatId),
-          )
-        : null;
+      let candidate = null;
 
-      const directCandidate =
-        matched ||
-        cached.formats.find(
-          (f) => f.vcodec !== "none" && f.acodec !== "none" && f.url,
+      if (formatId && formatId !== "best") {
+        const matched = cached.formats.find(
+          (f) =>
+            String(f.format_id) === String(formatId) ||
+            String(f.formatId) === String(formatId),
+        );
+        if (
+          matched &&
+          matched.url &&
+          matched.vcodec !== "none" &&
+          matched.acodec !== "none"
+        ) {
+          candidate = matched;
+        }
+      } else {
+        const videoFormats = cached.formats.filter((f) => f.vcodec !== "none");
+        const hasSeparateHigherRes = videoFormats.some(
+          (f) => f.acodec === "none" && (f.height > 480 || (f.tbr && f.tbr > 1200)),
         );
 
-      if (
-        directCandidate &&
-        directCandidate.url &&
-        directCandidate.vcodec !== "none" &&
-        directCandidate.acodec !== "none"
-      ) {
+        if (!hasSeparateHigherRes) {
+          const topProgressive = videoFormats
+            .filter((f) => f.acodec !== "none" && f.url)
+            .sort(
+              (a, b) =>
+                (b.height || b.tbr || 0) - (a.height || a.tbr || 0),
+            )[0];
+          if (topProgressive) {
+            candidate = topProgressive;
+          }
+        }
+      }
+
+      if (candidate && candidate.url) {
         try {
           process.stdout.write(
-            `[ytdlpService] Fast-path direct stream for ${targetUrl}\n`,
+            `[ytdlpService] Fast-path direct stream for ${targetUrl} (format ${candidate.format_id || candidate.formatId})\n`,
           );
-          return await getHttpStream(directCandidate.url);
+          return await getHttpStream(candidate.url);
         } catch (err) {
           process.stdout.write(
             `[ytdlpService] Fast-path stream failed, falling back to disk buffer: ${err.message}\n`,
@@ -260,11 +277,17 @@ const downloadVideo = async (url, formatId, type) => {
     }
   }
 
-  let formatArg = formatId ? `${formatId}+bestaudio/best` : "best";
+  const formatArg =
+    formatId && formatId !== "best"
+      ? `${formatId}+bestaudio/best`
+      : "bestvideo+bestaudio/best";
 
-  if (type === "mute") {
-    formatArg = formatId ? `${formatId}` : "bestvideo";
-  }
+  const finalFormat =
+    type === "mute"
+      ? formatId && formatId !== "best"
+        ? `${formatId}`
+        : "bestvideo/best"
+      : formatArg;
 
   if (!fs.existsSync(TEMP_DIR)) {
     fs.mkdirSync(TEMP_DIR, { recursive: true });
@@ -275,12 +298,19 @@ const downloadVideo = async (url, formatId, type) => {
 
   const flags = applyCommonFlags(targetUrl, {
     output: filePath,
-    format: formatArg,
+    format: finalFormat,
     mergeOutputFormat: "mp4",
     noWarnings: true,
     socketTimeout: 30,
     retries: 1,
   });
+
+  if (isFacebookUrl(targetUrl)) {
+    flags.addHeader = [
+      "referer:https://www.facebook.com/",
+      "accept-language:en-US,en;q=0.9",
+    ];
+  }
 
   await executeWithFallback("downloadVideo", targetUrl, flags, (runFlags) => {
     const ytdlpExec = getYtdlpInstance();
