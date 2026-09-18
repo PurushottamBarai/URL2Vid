@@ -4,12 +4,46 @@ import { URL } from 'url';
 import * as ytdlpService from './ytdlpService.js';
 import { videoInfoCache } from '../utils/cache.js';
 
-const INVIDIOUS_INSTANCES = [
+const FALLBACK_INVIDIOUS_INSTANCES = [
+  'https://inv.nadeko.net',
+  'https://invidious.nerdvpn.de',
+  'https://yt.chocolatemoo53.com',
+  'https://invidious.tiekoetter.com',
   'https://invidious.f5.si',
   'https://inv.zzls.xyz',
   'https://invidious.perennialte.ch',
   'https://invidious.jing.rocks'
 ];
+
+let dynamicInvidiousPool = [...FALLBACK_INVIDIOUS_INSTANCES];
+let lastPoolRefreshTime = 0;
+
+const refreshInvidiousPool = async () => {
+  const now = Date.now();
+  if (now - lastPoolRefreshTime < 30 * 60 * 1000 && dynamicInvidiousPool.length > 0) {
+    return;
+  }
+  try {
+    const res = await fetch('https://api.invidious.io/instances.json', {
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (Array.isArray(data)) {
+      const online = data
+        .filter(([, info]) => info.type === 'https' && info.uri && info.monitor && !info.monitor.down)
+        .map(([, info]) => info.uri.replace(/\/$/, ''));
+      if (online.length > 0) {
+        dynamicInvidiousPool = [...new Set([...online, ...FALLBACK_INVIDIOUS_INSTANCES])];
+        lastPoolRefreshTime = now;
+        process.stdout.write(`[youtubeService] Refreshed Invidious pool with ${online.length} live instances\n`);
+      }
+    }
+  } catch {}
+};
+
+// Initial background pool refresh
+refreshInvidiousPool().catch(() => {});
 
 export const extractYouTubeId = (urlString) => {
   if (!urlString || typeof urlString !== 'string') return null;
@@ -19,7 +53,7 @@ export const extractYouTubeId = (urlString) => {
   return match ? match[1] : null;
 };
 
-const fetchFromInstance = async (baseUrl, videoId, maxRetries = 2) => {
+const fetchFromInstance = async (baseUrl, videoId, maxRetries = 1) => {
   let lastError = null;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
@@ -28,7 +62,7 @@ const fetchFromInstance = async (baseUrl, videoId, maxRetries = 2) => {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
           'Accept': 'application/json',
         },
-        signal: AbortSignal.timeout(10000),
+        signal: AbortSignal.timeout(6000),
       });
 
       if (!res.ok) {
@@ -49,7 +83,7 @@ const fetchFromInstance = async (baseUrl, videoId, maxRetries = 2) => {
     } catch (err) {
       lastError = err;
       if (attempt < maxRetries) {
-        await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
+        await new Promise((resolve) => setTimeout(resolve, 300 * (attempt + 1)));
       }
     }
   }
@@ -59,7 +93,32 @@ const fetchFromInstance = async (baseUrl, videoId, maxRetries = 2) => {
 const PIPED_INSTANCES = [
   'https://api.piped.private.coffee',
   'https://pipedapi.ducks.party',
+  'https://pipedapi.reallyaweso.me',
+  'https://pipedapi.kavin.rocks'
 ];
+
+const fetchFromCloudflareRelay = async (videoId) => {
+  const relayUrl = process.env.CF_YOUTUBE_RELAY_URL || process.env.CLOUDFLARE_WORKER_URL;
+  if (!relayUrl) return null;
+
+  try {
+    const url = new URL(relayUrl);
+    url.searchParams.set('id', videoId);
+    const res = await fetch(url.toString(), {
+      headers: { 'User-Agent': 'URL2Vid-Server' },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data && data.title && Array.isArray(data.formats) && data.formats.length > 0) {
+      process.stdout.write(`[youtubeService] Cloudflare Worker Relay resolved video ${videoId}\n`);
+      return data;
+    }
+  } catch (err) {
+    process.stderr.write(`[youtubeService] Cloudflare Worker Relay error: ${err.message}\n`);
+  }
+  return null;
+};
 
 const fetchFromPiped = async (videoId) => {
   for (const base of PIPED_INSTANCES) {
@@ -112,9 +171,18 @@ export const fetchVideoInfo = async (url) => {
     return ytdlpService.fetchVideoInfo(url);
   }
 
-  // Tier 1: Invidious Multi-Instance Pool
+  // Tier 0: Optional Cloudflare Edge Relay (if configured)
+  const cfResult = await fetchFromCloudflareRelay(videoId);
+  if (cfResult) {
+    videoInfoCache.set(url, cfResult);
+    return cfResult;
+  }
+
+  // Tier 1: Dynamic Invidious Multi-Instance Pool
   try {
-    const promises = INVIDIOUS_INSTANCES.map((base) => fetchFromInstance(base, videoId));
+    await refreshInvidiousPool();
+    const candidatePool = dynamicInvidiousPool.slice(0, 6);
+    const promises = candidatePool.map((base) => fetchFromInstance(base, videoId));
     const data = await Promise.any(promises);
 
     const formatStreams = Array.isArray(data.formatStreams) ? data.formatStreams : [];
