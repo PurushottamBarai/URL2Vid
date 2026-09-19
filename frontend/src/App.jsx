@@ -5,6 +5,7 @@ import Navbar from './components/Navbar';
 import LoadingSkeleton from './components/LoadingSkeleton';
 import { platformsData } from './data/platforms';
 import { LanguageProvider } from './context/LanguageContext';
+import { trackEvent } from './utils/analytics';
 
 const Home = lazy(() => import('./pages/Home'));
 const NotFound = lazy(() => import('./pages/NotFound'));
@@ -16,6 +17,7 @@ const ScrollToTop = () => {
   const { pathname } = useLocation();
 
   useEffect(() => {
+    trackEvent('page_view', { page_path: pathname });
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     const timer = setTimeout(() => {
       const input = document.getElementById('video-url-input');

@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { ChevronDown, Download, Play, Pause, Music } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { useLanguage } from '../context/LanguageContext';
+import { trackEvent } from '../utils/analytics';
 
 const formatDuration = (sec) => {
   if (!sec || isNaN(sec) || sec <= 0) return null;
@@ -113,6 +114,8 @@ const VideoResults = React.memo(({ data, originalUrl, initialFormat = 'video' })
     if (!isItem && isDownloading) return;
     if (isItem) setDownloadingTrackId(trackItem.id); else setIsDownloading(true);
 
+    trackEvent('download_used', { downloader_type: data.platform || 'generic' });
+
     const downloadId = `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
     const url = new URL(`${API_BASE_URL}/download`, window.location.origin);
     const targetUrl = isItem ? (trackItem.downloadUrl || trackItem.searchQuery) : originalUrl;
@@ -159,6 +162,7 @@ const VideoResults = React.memo(({ data, originalUrl, initialFormat = 'video' })
     if (downloadAllActiveRef.current || !data.tracks?.length) return;
     downloadAllCancelRef.current = false;
     downloadAllActiveRef.current = true;
+    trackEvent('download_used', { downloader_type: data.platform || 'generic' });
     const tracks = data.tracks;
     setDownloadAllProgress({ current: 0, total: tracks.length, cancelled: false });
 
