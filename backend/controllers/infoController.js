@@ -96,6 +96,20 @@ const getInfo = async (req, res, next) => {
       } catch {}
     }
 
+    if (
+      platform === 'youtube' &&
+      (info.duration === null || info.duration === undefined || info.duration <= 0)
+    ) {
+      try {
+        const ytdlpInfo = await ytdlpService.fetchVideoInfo(url);
+        if (ytdlpInfo?.duration && ytdlpInfo.duration > 0) {
+          info.duration = ytdlpInfo.duration;
+          if (!info.title && ytdlpInfo.title) info.title = ytdlpInfo.title;
+          videoInfoCache.set(url, info);
+        }
+      } catch {}
+    }
+
     const availableFormats = processVideoFormats(info.formats, info.duration);
 
     res.status(200).json({

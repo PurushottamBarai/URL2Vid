@@ -2,6 +2,7 @@ import http from 'http';
 import https from 'https';
 import { URL } from 'url';
 import { videoInfoCache } from '../utils/cache.js';
+import * as ytdlpService from './ytdlpService.js';
 
 // --- Tier 3: Invidious Pool Configuration ---
 const FALLBACK_INVIDIOUS_INSTANCES = [
@@ -34,7 +35,7 @@ const refreshInvidiousPool = async () => {
         .filter(([, info]) => info.type === 'https' && info.uri && (!info.monitor || !info.monitor.down))
         .map(([, info]) => info.uri.replace(/\/$/, ''));
       if (online.length > 0) {
-        dynamicInvidiousPool = [...new Set([...online, ...FALLBACK_INVIDIOUS_INSTANCES])];
+        dynamicInvidiousPool = ['https://invidious.f5.si', ...new Set([...FALLBACK_INVIDIOUS_INSTANCES, ...online])];
         lastPoolRefreshTime = now;
       }
     }
@@ -293,40 +294,60 @@ export const fetchVideoInfo = async (url) => {
   })();
 
   const youtubeiPromise = (async () => {
-    try {
-      const res = await fetch('https://www.youtube.com/youtubei/v1/player?prettyPrint=false', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          videoId,
-          context: { client: { clientName: 'WEB', clientVersion: '2.20240722.01.00', hl: 'en', gl: 'US' } }
-        }),
-        signal: AbortSignal.timeout(3500),
-      });
-      if (res.ok) {
-        const d = await res.json();
-        const dur = d.videoDetails?.lengthSeconds || d.microformat?.playerMicroformatRenderer?.lengthSeconds;
-        return {
-          duration: dur ? parseInt(dur, 10) : null,
-          title: d.videoDetails?.title || null,
-        };
-      }
-    } catch {}
-    return null;
-  })();
-
-  const invidiousPromise = (async () => {
-    await refreshInvidiousPool();
-    const candidatePool = dynamicInvidiousPool.slice(0, 4);
-    for (const base of candidatePool) {
+    const clients = [
+      { clientName: 'MWEB', clientVersion: '2.20240722.01.00' },
+      { clientName: 'WEB', clientVersion: '2.20240722.01.00' }
+    ];
+    for (const c of clients) {
       try {
-        const d = await fetchFromInstance(base, videoId, 0);
-        if (d && (d.lengthSeconds || d.title || d.adaptiveFormats)) {
-          return d;
+        const res = await fetch('https://www.youtube.com/youtubei/v1/player?prettyPrint=false', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+          },
+          body: JSON.stringify({
+            videoId,
+            context: { client: { clientName: c.clientName, clientVersion: c.clientVersion, hl: 'en', gl: 'US' } }
+          }),
+          signal: AbortSignal.timeout(2500),
+        });
+        if (res.ok) {
+          const d = await res.json();
+          const dur = d.videoDetails?.lengthSeconds || d.microformat?.playerMicroformatRenderer?.lengthSeconds;
+          if (dur) {
+            return {
+              duration: parseInt(dur, 10),
+              title: d.videoDetails?.title || null,
+            };
+          }
         }
       } catch {}
     }
     return null;
+  })();
+
+  const invidiousPromise = (async () => {
+    const instances = [
+      'https://invidious.f5.si',
+      'https://invidious.nerdvpn.de',
+      'https://inv.nadeko.net',
+    ];
+    const promises = instances.map(async (base) => {
+      const res = await fetch(`${base}/api/v1/videos/${videoId}`, {
+        headers: { 'User-Agent': 'Mozilla/5.0' },
+        signal: AbortSignal.timeout(3000),
+      });
+      if (!res.ok) throw new Error(`Status ${res.status}`);
+      const d = await res.json();
+      if (d && (d.lengthSeconds || d.title || d.adaptiveFormats)) return d;
+      throw new Error('No data');
+    });
+    try {
+      return await Promise.any(promises);
+    } catch {
+      return null;
+    }
   })();
 
   const [oembedData, youtubeiData, invidiousData] = await Promise.all([
@@ -363,7 +384,7 @@ export const fetchVideoInfo = async (url) => {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
             'Accept-Language': 'en-US,en;q=0.9',
           },
-          signal: AbortSignal.timeout(3000),
+          signal: AbortSignal.timeout(2500),
         });
         if (pRes.ok) {
           const html = await pRes.text();
@@ -383,6 +404,17 @@ export const fetchVideoInfo = async (url) => {
         }
       } catch {}
     }
+  }
+
+  // Guaranteed fallback: yt-dlp on server (bypasses datacenter restrictions via android client)
+  if (!duration) {
+    try {
+      const ytdlpInfo = await ytdlpService.fetchVideoInfo(url);
+      if (ytdlpInfo?.duration) {
+        duration = ytdlpInfo.duration;
+        if (!title && ytdlpInfo.title) title = ytdlpInfo.title;
+      }
+    } catch {}
   }
 
   // Dynamic filesize calculation: If formats were not provided from Invidious CDN, generate format options
