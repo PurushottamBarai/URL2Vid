@@ -1,9 +1,8 @@
 import express from 'express';
-import nodemailer from 'nodemailer';
 
 const router = express.Router();
 
-router.post('/', async (req, res, next) => {
+router.post('/', async (req, res) => {
   try {
     const { name, message } = req.body || {};
 
@@ -20,43 +19,43 @@ router.post('/', async (req, res, next) => {
         .json({ success: false, error: 'Name and message are required.' });
     }
 
-    const emailUser = process.env.EMAIL_USER;
-    const emailPass = process.env.EMAIL_PASS;
+    const apiKey = process.env.RESEND_API_KEY;
+    const fromEmail = process.env.Email || process.env.EMAIL_FROM || 'support@codedeck.me';
+    const toEmail = process.env.FEEDBACK_TO || 'purushottamx.in@gmail.com';
 
-    if (!emailUser || !emailPass) {
-      process.stderr.write(
-        '[feedback] Warning: EMAIL_USER or EMAIL_PASS environment variables are not configured.\n',
-      );
+    if (!apiKey) {
+      process.stderr.write('[feedback] Warning: RESEND_API_KEY environment variable is not configured.\n');
       return res.status(500).json({
         success: false,
-        error: 'Email service credentials are not configured on server.',
+        error: 'Email service is not configured on server.',
       });
     }
 
-    // Automatically strip any spaces from App Password (e.g. "punr qhul zyfe nmzx" -> "punrqhulzyfenmzx")
-    const cleanPass = emailPass.replace(/\s+/g, '');
-    const cleanUser = emailUser.trim();
-
-    // Force IPv4 (family: 4) to prevent Render ENETUNREACH IPv6 connection errors
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
-      family: 4,
-      auth: {
-        user: cleanUser,
-        pass: cleanPass,
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey.trim()}`,
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({
+        from: `URL2Vid Feedback <${fromEmail.trim()}>`,
+        to: [toEmail.trim()],
+        subject: `Feedback from ${name.trim()}`,
+        text: message.trim(),
+      }),
     });
 
-    await transporter.sendMail({
-      from: cleanUser,
-      to: 'purushottamx.in@gmail.com',
-      subject: `Feedback from ${name.trim()}`,
-      text: message.trim(),
-    });
+    const data = await response.json();
 
-    return res.status(200).json({ success: true });
+    if (!response.ok) {
+      process.stderr.write(`[feedback error] Resend API error: ${JSON.stringify(data)}\n`);
+      return res.status(500).json({
+        success: false,
+        error: data.message || 'Failed to send feedback email. Please try again later.',
+      });
+    }
+
+    return res.status(200).json({ success: true, id: data.id });
   } catch (error) {
     process.stderr.write(`[feedback error] ${error.message}\n`);
     return res.status(500).json({
