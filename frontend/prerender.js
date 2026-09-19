@@ -38,6 +38,8 @@ async function prerender() {
       html = html.replace(/<link rel="canonical" href="[^"]*"/, `<link rel="canonical" href="${canonicalUrl}"`);
       html = html.replace(/<meta property="og:url" content="[^"]*"/, `<meta property="og:url" content="${canonicalUrl}"`);
       html = html.replaceAll('https://url2vid.onrender.com', 'https://url2vid.codedeck.me');
+      html = html.replaceAll(`http://localhost:${PORT}/`, '/');
+      html = html.replaceAll(`http://localhost:${PORT}`, '');
 
       const outputPath = route === '/'
         ? path.join(DIST_DIR, 'index.html')
