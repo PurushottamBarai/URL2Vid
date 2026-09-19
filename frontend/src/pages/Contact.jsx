@@ -1,10 +1,13 @@
 import React from 'react';
 import SEO from '../components/SEO';
+import { useLanguage } from '../context/LanguageContext';
 
 const CONTACT_TITLE = 'Contact Us - URL2Vid';
 const CONTACT_DESCRIPTION = 'Have questions or need help? Contact us via contact@codedeck.me or purushottamx.in@gmail.com.';
 
 export default function Contact() {
+  const { t } = useLanguage();
+
   return (
     <main className="flex-1 flex flex-col w-full bg-white">
       <SEO
@@ -16,7 +19,7 @@ export default function Contact() {
       {/* Top Banner with site greenish theme and bottom curve */}
       <div className="relative w-full bg-gradient-to-r from-[#0a5f5e] via-[#0E7C7B] to-[#129493] py-20 sm:py-24 text-center">
         <h1 className="text-4xl sm:text-5xl font-bold text-white tracking-wide">
-          Contact
+          {t('contactPageTitle', 'Contact')}
         </h1>
 
         {/* Bottom subtle wave curve */}
@@ -34,7 +37,7 @@ export default function Contact() {
       {/* Simple content area matching reference image */}
       <div className="w-full max-w-3xl mx-auto px-6 py-14 sm:py-16 text-gray-800 text-base sm:text-lg leading-relaxed">
         <p className="mb-6 text-gray-800">
-          Have questions or need help with your purchase or our services? Use email:{' '}
+          {t('contactHelpText', 'Have questions or need help with your purchase or our services? Use email:')}{' '}
           <a
             href="mailto:contact@codedeck.me"
             className="text-[#0E7C7B] hover:underline font-medium"
@@ -51,7 +54,7 @@ export default function Contact() {
         </p>
 
         <p className="text-gray-800">
-          to reach out and we will be in touch with you as quickly as possible. For specific issues, make use of the following POCs for faster redressal.
+          {t('contactReachOutText', 'to reach out and we will be in touch with you as quickly as possible. For specific issues, make use of the following POCs for faster redressal.')}
         </p>
       </div>
     </main>

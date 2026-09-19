@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 export const homeFaqs = [
   {
@@ -33,6 +34,7 @@ export const homeFaqs = [
 ];
 
 const FAQ = () => {
+  const { t } = useLanguage();
   const [openIndex, setOpenIndex] = useState(null);
 
   const toggleFaq = (index) => {
@@ -41,7 +43,7 @@ const FAQ = () => {
 
   return (
     <section id="faq" className="w-full max-w-4xl mx-auto py-12 px-4 border-t border-border mb-8">
-      <h2 className="text-3xl font-bold text-text-primary text-center mb-10">Frequently Asked Questions</h2>
+      <h2 className="text-3xl font-bold text-text-primary text-center mb-10">{t('faqTitle', 'Frequently Asked Questions')}</h2>
       
       <div className="flex flex-col gap-4">
         {homeFaqs.map((faq, index) => {

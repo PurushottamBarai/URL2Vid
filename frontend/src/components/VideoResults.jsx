@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { ChevronDown, Download, Play, Pause, Music } from 'lucide-react';
 import { API_BASE_URL } from '../config';
+import { useLanguage } from '../context/LanguageContext';
 
 const formatDuration = (sec) => {
   if (!sec || isNaN(sec) || sec <= 0) return null;
@@ -50,6 +51,7 @@ const formatLabel = (fmt, durationSec, topFilesize) => {
 };
 
 const VideoResults = React.memo(({ data, originalUrl, initialFormat = 'video' }) => {
+  const { t } = useLanguage();
   const isAudio = initialFormat === 'audio' || data?.platform === 'spotify' || data?.platform === 'applemusic' || data?.platform === 'youtubemusic' || data?.platform === 'soundcloud';
   const [selectedFormat, setSelectedFormat] = useState(isAudio ? '192k' : 'best');
   const [isDownloading, setIsDownloading] = useState(false);
@@ -235,7 +237,7 @@ const VideoResults = React.memo(({ data, originalUrl, initialFormat = 'video' })
             </div>
             <h2 className="text-text-primary text-xl font-bold line-clamp-2 leading-tight">{data.title || 'Extracted Media'}</h2>
             <p className="text-text-secondary font-mono text-sm">
-              {isCollection ? `${data.trackCount} tracks${formattedDuration ? ` - ${formattedDuration}` : ''}` : formattedDuration || 'Ready to download'}
+              {isCollection ? `${data.trackCount} tracks${formattedDuration ? ` - ${formattedDuration}` : ''}` : formattedDuration || t('readyToDownload', 'Ready to download')}
             </p>
           </div>
           {!isCollection && (
@@ -262,7 +264,7 @@ const VideoResults = React.memo(({ data, originalUrl, initialFormat = 'video' })
               <button onClick={() => handleDownload()} disabled={isDownloading}
                 className="w-full py-4 text-lg rounded-md font-bold transition-colors border border-accent text-accent hover:bg-accent/10 focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-base outline-none active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
                 aria-label="Download file">
-                {isDownloading ? <div className="w-5 h-5 border-2 border-accent/30 border-t-accent rounded-full animate-spin"></div> : <><Download className="w-5 h-5" aria-hidden="true" /><span>Download MP3</span></>}
+                {isDownloading ? <div className="w-5 h-5 border-2 border-accent/30 border-t-accent rounded-full animate-spin"></div> : <><Download className="w-5 h-5" aria-hidden="true" /><span>{isAudio ? t('downloadMp3', 'Download MP3') : t('downloadVideo', 'Download Video')}</span></>}
               </button>
             </div>
           )}
@@ -274,7 +276,7 @@ const VideoResults = React.memo(({ data, originalUrl, initialFormat = 'video' })
           <div className="flex items-center justify-between pb-3 border-b border-border gap-3 flex-wrap">
             <h3 className="font-bold text-lg text-text-primary flex items-center gap-2">
               <Music className="w-5 h-5 text-accent" />
-              <span>Track List ({data.tracks.length})</span>
+              <span>{t('trackList', 'Track List')} ({data.tracks.length})</span>
             </h3>
             <div className="flex items-center gap-3">
               {downloadAllProgress ? (
@@ -304,7 +306,7 @@ const VideoResults = React.memo(({ data, originalUrl, initialFormat = 'video' })
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold border border-accent text-accent hover:bg-accent/10 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                   title="Download all tracks sequentially">
                   <Download className="w-3.5 h-3.5" />
-                  <span>Download All</span>
+                  <span>{t('downloadAll', 'Download All')}</span>
                 </button>
               )}
             </div>

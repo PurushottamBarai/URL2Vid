@@ -4,12 +4,12 @@ import { Download } from 'lucide-react';
 import { checkUrlStatus } from '../utils/urlValidation.js';
 import { useLanguage } from '../context/LanguageContext';
 
-const STATUS_MESSAGES = [
-  "Fetching...",
-  "Retrieving...",
-  "Receiving data...",
-  "Preparing transfer...",
-  "Finalizing...",
+const STATUS_MESSAGE_KEYS = [
+  { key: "statusFetching", fallback: "Fetching..." },
+  { key: "statusRetrieving", fallback: "Retrieving..." },
+  { key: "statusReceiving", fallback: "Receiving data..." },
+  { key: "statusPreparing", fallback: "Preparing transfer..." },
+  { key: "statusFinalizing", fallback: "Finalizing..." },
 ];
 
 const Hero = React.memo(({ onFetch, isLoading, customTitle, customSubtitle, defaultFormat = 'best' }) => {
@@ -29,7 +29,7 @@ const Hero = React.memo(({ onFetch, isLoading, customTitle, customSubtitle, defa
       return;
     }
     const timer = setInterval(() => {
-      setStatusIndex((prev) => (prev + 1) % STATUS_MESSAGES.length);
+      setStatusIndex((prev) => (prev + 1) % STATUS_MESSAGE_KEYS.length);
     }, 3600);
     return () => clearInterval(timer);
   }, [isLoading]);
@@ -73,7 +73,7 @@ const Hero = React.memo(({ onFetch, isLoading, customTitle, customSubtitle, defa
               <input
                 id="video-url-input"
                 type="url"
-                placeholder="https://..."
+                placeholder={t('pasteUrlPlaceholder', 'https://...')}
                 value={url}
                 onChange={(e) => {
                   setUrl(e.target.value);
@@ -115,7 +115,7 @@ const Hero = React.memo(({ onFetch, isLoading, customTitle, customSubtitle, defa
                 {isLoading ? (
                   <div className="flex items-center justify-center gap-2">
                     <div className="w-4 h-4 border-2 border-surface/30 border-t-surface rounded-full animate-spin"></div>
-                    <span className="text-base font-medium">{STATUS_MESSAGES[statusIndex]}</span>
+                    <span className="text-base font-medium">{t(STATUS_MESSAGE_KEYS[statusIndex].key, STATUS_MESSAGE_KEYS[statusIndex].fallback)}</span>
                   </div>
                 ) : (
                   <>

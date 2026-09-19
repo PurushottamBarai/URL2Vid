@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { SiYoutube, SiInstagram, SiFacebook, SiX, SiPinterest, SiReddit, SiSnapchat, SiThreads, SiVimeo, SiTwitch, SiSpotify, SiApplemusic, SiYoutubemusic } from 'react-icons/si';
 import { FaLinkedin, FaSoundcloud } from 'react-icons/fa';
+import { useLanguage } from '../context/LanguageContext';
 
 const videoPlatforms = [
   { name: 'YouTube', text: 'YouTube (Videos & Shorts)', path: '/youtube-video-downloader', Icon: SiYoutube, activeColor: 'group-hover:text-[#FF0000]' },
@@ -26,6 +27,8 @@ const musicPlatforms = [
 ];
 
 const SupportedPlatforms = () => {
+  const { t } = useLanguage();
+
   const handlePlatformClick = () => {
     window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
     setTimeout(() => {
@@ -36,7 +39,7 @@ const SupportedPlatforms = () => {
 
   return (
     <section id="supported-platforms" className="w-full max-w-4xl mx-auto py-12 px-4 border-t border-border">
-      <h2 className="text-3xl font-bold text-text-primary text-center mb-10">Supported Platforms</h2>
+      <h2 className="text-3xl font-bold text-text-primary text-center mb-10">{t('supportedPlatformsTitle', 'Supported Platforms')}</h2>
       
       {/* Video Platforms */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
@@ -71,7 +74,7 @@ const SupportedPlatforms = () => {
       <div className="mt-10">
         <h3 className="text-lg font-semibold text-text-secondary text-center mb-6 flex items-center justify-center gap-3">
           <span className="h-px flex-1 bg-border max-w-24" />
-          <span>Music Platforms</span>
+          <span>{t('musicPlatformsTitle', 'Music Platforms')}</span>
           <span className="h-px flex-1 bg-border max-w-24" />
         </h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">

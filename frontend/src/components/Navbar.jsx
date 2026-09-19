@@ -157,7 +157,7 @@ const Navbar = () => {
 
                 {/* Music Platforms divider */}
                 <div className="mt-2 pt-2 border-t border-border/60">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-text-secondary px-2 block mb-1.5">Music</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-text-secondary px-2 block mb-1.5">{t('navMusic')}</span>
                   <div className="grid grid-cols-2 gap-1">
                     {musicPlatforms.map((p) => {
                       const Icon = p.Icon;
@@ -197,7 +197,7 @@ const Navbar = () => {
             to="/contact"
             className="px-3 py-1.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface transition-colors cursor-pointer"
           >
-            Contact
+            {t('navContact')}
           </Link>
         </nav>
 
@@ -284,7 +284,7 @@ const Navbar = () => {
 
           <div className="py-2 border-t border-b border-border/60 my-1">
             <span className="text-xs font-semibold text-text-secondary px-3 uppercase tracking-wider block mb-2">
-              Popular Platforms
+              {t('navPopularPlatforms')}
             </span>
             <div className="grid grid-cols-2 gap-1 px-1">
               {quickPlatforms.map((p) => {
@@ -303,7 +303,7 @@ const Navbar = () => {
               })}
             </div>
             <div className="mt-2 pt-2 border-t border-border/60">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-text-secondary px-1 block mb-1">Music</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-text-secondary px-1 block mb-1">{t('navMusic')}</span>
               <div className="grid grid-cols-2 gap-1">
                 {musicPlatforms.map((p) => {
                   const Icon = p.Icon;
@@ -342,7 +342,7 @@ const Navbar = () => {
             onClick={() => setIsMenuOpen(false)}
             className="w-full text-left px-3 py-2 rounded-lg text-sm text-text-secondary hover:text-text-primary hover:bg-surface block"
           >
-            Contact
+            {t('navContact')}
           </Link>
         </div>
       )}
