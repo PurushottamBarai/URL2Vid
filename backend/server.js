@@ -12,6 +12,7 @@ import rateLimiter from './middlewares/rateLimiter.js';
 import errorHandler from './middlewares/errorHandler.js';
 import infoRoutes from './routes/infoRoutes.js';
 import downloadRoutes from './routes/downloadRoutes.js';
+import feedbackRoutes from './routes/feedbackRoutes.js';
 
 dotenv.config();
 
@@ -160,6 +161,7 @@ app.get('/health', (_req, res) => {
 
 app.use('/api/info', infoRoutes);
 app.use('/api/download', downloadRoutes);
+app.use('/api/feedback', feedbackRoutes);
 
 const frontendPath = path.join(__dirname, '../frontend/dist');
 app.use(express.static(frontendPath));

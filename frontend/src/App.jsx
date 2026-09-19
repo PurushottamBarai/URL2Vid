@@ -12,6 +12,7 @@ const NotFound = lazy(() => import('./pages/NotFound'));
 const PlatformLanding = lazy(() => import('./pages/PlatformLanding'));
 const UserGuide = lazy(() => import('./pages/UserGuide'));
 const Contact = lazy(() => import('./pages/Contact'));
+const Feedback = lazy(() => import('./pages/Feedback'));
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -51,6 +52,7 @@ const App = () => {
               
               <Route path="/user-guide" element={<UserGuide />} />
               <Route path="/contact" element={<Contact />} />
+              <Route path="/feedback" element={<Feedback />} />
               <Route path="/guide" element={<Navigate to="/user-guide" replace />} />
               <Route path="/x-video-downloader" element={<Navigate to="/twitter-video-downloader" replace />} />
               
@@ -112,6 +114,8 @@ const App = () => {
                   <a href="/user-guide" className="hover:text-accent hover:underline">User Guide</a>
                   <span>•</span>
                   <a href="/contact" className="hover:text-accent hover:underline">Contact</a>
+                  <span>•</span>
+                  <a href="/feedback" className="hover:text-accent hover:underline">Feedback</a>
                   <span>•</span>
                   <p>For personal and educational use only.</p>
                 </div>

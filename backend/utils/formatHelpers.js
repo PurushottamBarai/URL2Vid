@@ -14,7 +14,16 @@ export const processVideoFormats = (rawFormats, duration) => {
   }
 
   const estimateBitrateForRes = (width, height, resStr) => {
-    const h = height || (resStr?.match(/(\d+)p/)?.[1] ? parseInt(resStr.match(/(\d+)p/)[1], 10) : 0);
+    let h = height;
+    if (!h && resStr) {
+      const xMatch = resStr.match(/(\d+)x(\d+)/);
+      if (xMatch) {
+        h = Math.min(parseInt(xMatch[1], 10), parseInt(xMatch[2], 10));
+      } else {
+        const pMatch = resStr.match(/(\d+)p/i);
+        if (pMatch) h = parseInt(pMatch[1], 10);
+      }
+    }
     if (h >= 1080) return 4000;
     if (h >= 720) return 2200;
     if (h >= 480) return 1200;
@@ -22,23 +31,25 @@ export const processVideoFormats = (rawFormats, duration) => {
     return 400;
   };
 
+  const effectiveDuration = duration && duration > 0 ? duration : 60;
+
   // Find top audio track to account for audio size when video tracks are video-only
   const audioTrack = rawFormats.find(
     (f) => f.vcodec === 'none' && f.acodec !== 'none' && (f.filesize || f.tbr)
   );
   const audioBitrateKbps = audioTrack?.tbr || audioTrack?.abr || 128;
-  const audioFilesize = audioTrack?.filesize || (duration && duration > 0 ? Math.round((audioBitrateKbps * 1000 * duration) / 8) : 0);
+  const audioFilesize = audioTrack?.filesize || Math.round((audioBitrateKbps * 1000 * effectiveDuration) / 8);
 
   let formats = rawFormats
     .filter((f) => f.vcodec !== 'none' || f.acodec !== 'none')
     .map((f) => {
       let isEstimated = false;
       let filesize = f.filesize || f.filesize_approx || null;
-      if (!filesize && duration && duration > 0) {
+      if (!filesize) {
         const bitrateKbps =
           f.tbr || (f.vbr || 0) + (f.abr || 0) || estimateBitrateForRes(f.width, f.height, f.resolution);
         if (bitrateKbps && bitrateKbps > 0) {
-          filesize = Math.round((bitrateKbps * 1000 * duration) / 8);
+          filesize = Math.round((bitrateKbps * 1000 * effectiveDuration) / 8);
           isEstimated = true;
         }
       }

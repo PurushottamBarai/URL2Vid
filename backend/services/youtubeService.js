@@ -235,6 +235,22 @@ export const fetchVideoInfo = async (url) => {
       }
     } catch {}
 
+    if (!duration) {
+      try {
+        const watchRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
+          signal: AbortSignal.timeout(3000),
+          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
+        });
+        if (watchRes.ok) {
+          const html = await watchRes.text();
+          const durMatch = html.match(/"approxDurationMs":"(\d+)"/) || html.match(/"lengthSeconds":"(\d+)"/);
+          if (durMatch) {
+            duration = Math.round(parseInt(durMatch[1], 10) / (durMatch[0].includes('approxDurationMs') ? 1000 : 1));
+          }
+        }
+      } catch {}
+    }
+
     if (title) {
       const result = {
         title,
@@ -249,6 +265,8 @@ export const fetchVideoInfo = async (url) => {
             format_id: '137',
             ext: 'mp4',
             resolution: '1920x1080',
+            width: 1920,
+            height: 1080,
             vcodec: 'h264',
             acodec: 'mp4a',
             hasVideo: true,
@@ -258,6 +276,8 @@ export const fetchVideoInfo = async (url) => {
             format_id: '22',
             ext: 'mp4',
             resolution: '1280x720',
+            width: 1280,
+            height: 720,
             vcodec: 'h264',
             acodec: 'mp4a',
             hasVideo: true,
@@ -267,6 +287,8 @@ export const fetchVideoInfo = async (url) => {
             format_id: '18',
             ext: 'mp4',
             resolution: '640x360',
+            width: 640,
+            height: 360,
             vcodec: 'h264',
             acodec: 'mp4a',
             hasVideo: true,

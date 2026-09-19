@@ -46,8 +46,18 @@ const formatLabel = (fmt, durationSec, topFilesize) => {
   let sizeBytes = fmt.filesize;
   if (!sizeBytes && durationSec && fmt.tbr) sizeBytes = Math.round((fmt.tbr * 1000 * durationSec) / 8);
   if (!sizeBytes && topFilesize) sizeBytes = topFilesize;
-  const isEstimated = Boolean(fmt.isEstimated || (!fmt.filesize && sizeBytes));
-  const sizeStr = formatBytes(sizeBytes, isEstimated);
+
+  if (!sizeBytes) {
+    const res = fmt.resolution || '';
+    const match = res.match(/(\d+)x(\d+)/) || res.match(/(\d+)p/i);
+    const h = match ? Math.min(parseInt(match[1], 10), parseInt(match[2] || match[1], 10)) : 720;
+    const dur = durationSec && durationSec > 0 ? durationSec : 60;
+    const kbps = h >= 1080 ? 4000 : h >= 720 ? 2200 : h >= 480 ? 1200 : 650;
+    sizeBytes = Math.round((kbps * 1000 * dur) / 8);
+  }
+
+  const isEstimated = Boolean(fmt.isEstimated || (!fmt.filesize && sizeBytes) || !fmt.filesize);
+  const sizeStr = fmt.sizeLabel || formatBytes(sizeBytes, isEstimated);
   return `${fmt.resolution || 'Unknown'} ${fmt.ext ? `(.${fmt.ext})` : ''}${sizeStr ? ` - ${sizeStr}` : ''}`;
 };
 
@@ -101,12 +111,20 @@ const VideoResults = React.memo(({ data, originalUrl, initialFormat = 'video' })
   }, [data.duration, topVideoFormat]);
 
   const defaultVideoOptionLabel = useMemo(() => {
-    const topSize = topVideoFormat?.filesize;
-    const isEstimated = Boolean(topVideoFormat?.isEstimated);
+    let topSize = topVideoFormat?.filesize;
+    if (!topSize) {
+      const res = topVideoFormat?.resolution || '';
+      const match = res.match(/(\d+)x(\d+)/) || res.match(/(\d+)p/i);
+      const h = match ? Math.min(parseInt(match[1], 10), parseInt(match[2] || match[1], 10)) : 1080;
+      const dur = data.duration && data.duration > 0 ? data.duration : 60;
+      const kbps = h >= 1080 ? 4000 : h >= 720 ? 2200 : h >= 480 ? 1200 : 650;
+      topSize = Math.round((kbps * 1000 * dur) / 8);
+    }
+    const isEstimated = Boolean(topVideoFormat?.isEstimated || !topVideoFormat?.filesize);
     const sizeStr = topVideoFormat?.sizeLabel || (topSize ? formatBytes(topSize, isEstimated) : '');
     const metaStr = sizeStr ? ` - ${sizeStr}` : '';
     return initialFormat === 'mute' ? `Best Video (No Sound)${metaStr}` : `Best Video (MP4)${metaStr}`;
-  }, [initialFormat, topVideoFormat]);
+  }, [initialFormat, topVideoFormat, data.duration]);
 
   const handleDownload = (trackItem = null) => {
     const isItem = Boolean(trackItem);
