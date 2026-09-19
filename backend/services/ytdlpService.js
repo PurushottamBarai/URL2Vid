@@ -239,9 +239,51 @@ const getHttpStream = (streamUrl, maxRedirects = 5) => {
 };
 
 // Quickly resolve a YouTube video ID for a search query without downloading
-// Uses yt-dlp --print id ytsearch1:... — typically completes in 2-5 seconds
-const resolveSearchVideoId = (searchQuery) =>
-  new Promise((resolve) => {
+// Tier 1: YouTubei Internal Search API (fast, ~200ms, not IP-blocked on Render)
+// Tier 2: yt-dlp ytsearch1 fallback
+const resolveSearchVideoId = async (searchQuery) => {
+  if (!searchQuery || typeof searchQuery !== 'string') return null;
+
+  // Tier 1: YouTubei Search API
+  try {
+    const res = await fetch('https://www.youtube.com/youtubei/v1/search', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+      },
+      body: JSON.stringify({
+        query: searchQuery,
+        context: {
+          client: {
+            clientName: 'WEB',
+            clientVersion: '2.20240722.01.00',
+            hl: 'en',
+            gl: 'US',
+          },
+        },
+      }),
+      signal: AbortSignal.timeout(4000),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      const sections =
+        data.contents?.twoColumnSearchResultsRenderer?.primaryContents
+          ?.sectionListRenderer?.contents;
+      const items = sections?.[0]?.itemSectionRenderer?.contents;
+      if (Array.isArray(items)) {
+        const firstVideo = items.find((i) => i.videoRenderer)?.videoRenderer;
+        if (firstVideo?.videoId && /^[a-zA-Z0-9_-]{10,12}$/.test(firstVideo.videoId)) {
+          return firstVideo.videoId;
+        }
+      }
+    }
+  } catch {}
+
+  // Tier 2: yt-dlp search fallback
+  return new Promise((resolve) => {
     try {
       const ytdlpExec = getYtdlpInstance();
       const proc = ytdlpExec.exec(
@@ -258,7 +300,7 @@ const resolveSearchVideoId = (searchQuery) =>
       let output = '';
       if (proc.stdout) proc.stdout.on('data', (chunk) => { output += chunk.toString(); });
 
-      const timer = setTimeout(() => resolve(null), 20000);
+      const timer = setTimeout(() => resolve(null), 15000);
 
       proc.on('close', () => {
         clearTimeout(timer);
@@ -270,6 +312,7 @@ const resolveSearchVideoId = (searchQuery) =>
       resolve(null);
     }
   });
+};
 
 const downloadVideo = async (url, formatId, type) => {
   const targetUrl = await prepareTargetUrl(url);

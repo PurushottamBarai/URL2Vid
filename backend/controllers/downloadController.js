@@ -6,6 +6,9 @@ import * as pinterestService from "../services/pinterestService.js";
 import * as threadsService from "../services/threadsService.js";
 import * as linkedinService from "../services/linkedinService.js";
 import * as spotifyService from "../services/spotifyService.js";
+import * as appleMusicService from "../services/appleMusicService.js";
+import * as youtubeMusicService from "../services/youtubeMusicService.js";
+import * as soundcloudService from "../services/soundcloudService.js";
 import * as ffmpegService from "../services/ffmpegService.js";
 import { detectPlatform } from "../utils/platformDetector.js";
 
@@ -28,6 +31,12 @@ const resolveMediaStream = async (platform, url, formatId, type) => {
       return youtubeService.downloadVideo(url, formatId, type);
     case "spotify":
       return spotifyService.downloadSpotifyTrack(url, formatId, type);
+    case "applemusic":
+      return appleMusicService.downloadAppleMusicTrack(url, formatId, type);
+    case "youtubemusic":
+      return youtubeMusicService.downloadYouTubeMusicTrack(url, formatId, type);
+    case "soundcloud":
+      return soundcloudService.downloadSoundCloudTrack(url, formatId, type);
     case "snapchat":
       return snapchatService.downloadVideo(url, type);
     case "pinterest":
@@ -72,7 +81,7 @@ const downloadMedia = async (req, res, next) => {
 
   try {
     const platform = detectPlatform(url);
-    const isAudio = type === "audio" || platform === "spotify";
+    const isAudio = type === "audio" || platform === "spotify" || platform === "applemusic" || platform === "youtubemusic" || platform === "soundcloud";
 
     const safeTitle = title
       ? title.replace(/[^a-zA-Z0-9 _.-]/g, "").trim().slice(0, 120)

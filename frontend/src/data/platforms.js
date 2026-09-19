@@ -11,6 +11,7 @@ export const platformsData = [
       { title: 'Download your video', desc: 'Select your preferred video quality (e.g., 1080p, 720p) or audio format, and download the file.' }
     ],
     faqs: [
+      { question: 'Are YouTube downloaders illegal?', answer: 'They are not illegal. Because, we do not crack the DRM protection of YouTube files. We just fetch the video info from their web-API and use public streaming sources to get the mp4 files.' },
       { question: 'Can I download YouTube Shorts?', answer: 'Yes, our tool fully supports downloading YouTube Shorts in high quality.' },
       { question: "What's the maximum video length supported?", answer: 'We support videos of most standard lengths, though extremely long streams (multiple hours) might take longer to process.' },
       { question: 'Can I download age-restricted videos?', answer: 'Currently, we only support downloading publicly available videos that do not require an account login to view.' },
@@ -31,6 +32,7 @@ export const platformsData = [
       { title: 'Save to your device', desc: 'Click the download button to save the MP4 video directly to your camera roll or computer.' }
     ],
     faqs: [
+      { question: 'Are Instagram downloaders illegal?', answer: 'They are not illegal. Because, we do not crack the DRM protection of Instagram files. We just fetch the video info from their web-API and use public streaming sources to get the mp4 files.' },
       { question: 'Can I download private Instagram videos?', answer: 'No. Our tool can only access and download public Instagram posts and Reels.' },
       { question: 'Does this work for Instagram Stories?', answer: 'Currently, we specialize in downloading permanent video posts and Reels, not temporary 24-hour Stories.' },
       { question: 'Will the downloaded video have a watermark?', answer: 'No! The video will be downloaded exactly as it appears on Instagram, without any added watermarks.' }
@@ -50,6 +52,7 @@ export const platformsData = [
       { title: 'Download the video', desc: 'Choose your preferred video quality (e.g., HD or SD) and click download to save the file.' }
     ],
     faqs: [
+      { question: 'Are Facebook downloaders illegal?', answer: 'They are not illegal. Because, we do not crack the DRM protection of Facebook files. We just fetch the video info from their web-API and use public streaming sources to get the mp4 files.' },
       { question: 'Can I download private Facebook videos?', answer: 'No, we respect user privacy. Our tool can only fetch videos that are set to "Public" on Facebook.' },
       { question: 'Does this support Facebook Reels?', answer: 'Yes, you can paste the link to any public Facebook Reel and download it just like a regular video.' },
       { question: 'Are there any limits on downloads?', answer: 'No, you can use our Facebook video downloader as many times as you want for free.' }
@@ -69,6 +72,7 @@ export const platformsData = [
       { title: 'Save the video', desc: 'Select the video resolution you want and save the MP4 file to your phone or computer.' }
     ],
     faqs: [
+      { question: 'Are Twitter downloaders illegal?', answer: 'They are not illegal. Because, we do not crack the DRM protection of Twitter files. We just fetch the video info from their web-API and use public streaming sources to get the mp4 files.' },
       { question: 'Does this work with x.com links?', answer: 'Yes, our tool fully supports both the old twitter.com and the new x.com URLs.' },
       { question: 'Can I download GIFs from Twitter?', answer: 'Yes! Twitter converts GIFs to video files (MP4), so you can download them just like regular videos.' },
       { question: 'Do I need to install an app?', answer: 'No, our downloader is entirely web-based and works in any browser.' }
@@ -88,6 +92,7 @@ export const platformsData = [
       { title: 'Download your Pin', desc: 'Choose your desired video quality from the list and download the MP4 straight to your device.' }
     ],
     faqs: [
+      { question: 'Are Pinterest downloaders illegal?', answer: 'They are not illegal. Because, we do not crack the DRM protection of Pinterest files. We just fetch the video info from their web-API and use public streaming sources to get the mp4 files.' },
       { question: 'Can I download images from Pinterest?', answer: 'Our tool is optimized for video Pins. For images, you can usually just right-click or long-press and save directly from Pinterest.' },
       { question: 'Do I need to log in to Pinterest?', answer: 'No, you do not need a Pinterest account to download public video Pins using our service.' },
       { question: 'Are Idea Pins supported?', answer: 'Yes, as long as the Idea Pin contains video content and is public, our tool can extract it.' }
@@ -107,6 +112,7 @@ export const platformsData = [
       { title: 'Download with sound', desc: 'Select your preferred video resolution and download your Reddit video with synced audio.' }
     ],
     faqs: [
+      { question: 'Are Reddit downloaders illegal?', answer: 'They are not illegal. Because, we do not crack the DRM protection of Reddit files. We just fetch the video info from their web-API and use public streaming sources to get the mp4 files.' },
       { question: 'Do downloaded Reddit videos have sound?', answer: 'Yes! Our tool automatically merges the video and audio streams so your downloaded MP4 has full sound.' },
       { question: 'Can I download Reddit short links (s/)?', answer: 'Yes, our resolver seamlessly handles both standard reddit.com post URLs and new mobile app share links.' },
       { question: 'Is it free to use?', answer: 'Yes, URL2Vid is completely free with no registration or download caps.' }
@@ -126,6 +132,7 @@ export const platformsData = [
       { title: 'Save your video', desc: 'Click the download button to save the MP4 video directly to your computer or phone.' }
     ],
     faqs: [
+      { question: 'Are LinkedIn downloaders illegal?', answer: 'They are not illegal. Because, we do not crack the DRM protection of LinkedIn files. We just fetch the video info from their web-API and use public streaming sources to get the mp4 files.' },
       { question: 'Does it support short lnkd.in links?', answer: 'Yes, our system automatically resolves shortened lnkd.in links and extracts the original media.' },
       { question: 'Can I download private LinkedIn videos?', answer: 'No, we only support publicly visible LinkedIn video posts.' },
       { question: 'Do I need to sign in with LinkedIn?', answer: 'No, you never need to connect or log in with your LinkedIn account.' }
@@ -145,6 +152,7 @@ export const platformsData = [
       { title: 'Download your video', desc: 'Save the MP4 video straight to your photo gallery or downloads folder.' }
     ],
     faqs: [
+      { question: 'Are Snapchat downloaders illegal?', answer: 'They are not illegal. Because, we do not crack the DRM protection of Snapchat files. We just fetch the video info from their web-API and use public streaming sources to get the mp4 files.' },
       { question: 'Can I download private Snaps or Stories?', answer: 'No, our tool is strictly for publicly shared Snapchat Spotlight videos.' },
       { question: 'Does URL2Vid add a watermark?', answer: 'No, downloaded videos are saved as close to the original source quality as possible without added watermarks.' },
       { question: 'Does this work on mobile?', answer: 'Yes, it works smoothly in Safari, Chrome, and all mobile browsers.' }
@@ -164,6 +172,7 @@ export const platformsData = [
       { title: 'Download MP4', desc: 'Choose your format and save the video directly to your device.' }
     ],
     faqs: [
+      { question: 'Are Threads downloaders illegal?', answer: 'They are not illegal. Because, we do not crack the DRM protection of Threads files. We just fetch the video info from their web-API and use public streaming sources to get the mp4 files.' },
       { question: 'Does this support both threads.net and threads.com?', answer: 'Yes, links from both domains are fully supported.' },
       { question: 'Do I need a Threads account?', answer: 'No, you do not need an account or login to download public Threads videos.' },
       { question: 'Are videos saved in HD?', answer: 'Yes, videos are fetched in the highest resolution made available by Threads.' }
@@ -183,6 +192,7 @@ export const platformsData = [
       { title: 'Save your file', desc: 'Select your preferred resolution or audio format and download instantly.' }
     ],
     faqs: [
+      { question: 'Are Vimeo downloaders illegal?', answer: 'They are not illegal. Because, we do not crack the DRM protection of Vimeo files. We just fetch the video info from their web-API and use public streaming sources to get the mp4 files.' },
       { question: 'Can I download private or password-protected Vimeo videos?', answer: 'No, we only support public Vimeo videos.' },
       { question: 'Can I extract audio only from Vimeo?', answer: 'Yes! Select the "Audio (MP3)" option to extract sound from Vimeo videos.' },
       { question: 'Is there a file size limit?', answer: 'Most standard Vimeo videos download within seconds without arbitrary file size caps.' }
@@ -202,6 +212,7 @@ export const platformsData = [
       { title: 'Download clip', desc: 'Select your preferred video resolution and save the clip to your device.' }
     ],
     faqs: [
+      { question: 'Are Twitch downloaders illegal?', answer: 'They are not illegal. Because, we do not crack the DRM protection of Twitch files. We just fetch the video info from their web-API and use public streaming sources to get the mp4 files.' },
       { question: 'Does this work for clips.twitch.tv links?', answer: 'Yes, both clips.twitch.tv and standard Twitch clip links work seamlessly.' },
       { question: 'Can I download full live streams?', answer: 'This tool is optimized for Twitch clips and highlights rather than multi-hour live VODs.' },
       { question: 'Is this free?', answer: 'Yes, URL2Vid is 100% free with no hidden charges.' }
@@ -221,11 +232,100 @@ export const platformsData = [
       { title: 'Download your video', desc: 'Pick your desired quality from the formats list and save the video.' }
     ],
     faqs: [
+      { question: 'Are Dailymotion downloaders illegal?', answer: 'They are not illegal. Because, we do not crack the DRM protection of Dailymotion files. We just fetch the video info from their web-API and use public streaming sources to get the mp4 files.' },
       { question: 'Does this work on mobile devices?', answer: 'Yes, URL2Vid works on iOS, Android, macOS, and Windows browsers.' },
       { question: 'Does URL2Vid add watermarks?', answer: 'Never. Your downloaded video is clean, exactly as published.' },
       { question: 'Do I need to sign up?', answer: 'No account, login, or registration is required.' }
     ],
     metaTitle: 'Dailymotion Video Downloader: Download Dailymotion Videos | URL2Vid',
     metaDescription: 'Fast, free Dailymotion video downloader. Download Dailymotion videos in MP4 format without registration or added watermarks.'
+  },
+  {
+    path: '/spotify-downloader',
+    platformName: 'Spotify',
+    isMusic: true,
+    h1: 'Spotify Downloader: Download Spotify Songs & Playlists to MP3',
+    intro: 'Use our free Spotify downloader to convert and download Spotify tracks, playlists, and albums into high-quality 320kbps MP3 audio files. No Spotify Premium subscription or desktop software required.',
+    description: 'Our Spotify music downloader allows you to save your favorite songs, playlists, and albums directly to your computer, iPhone, or Android device. Simply paste any open.spotify.com or spotify.link URL to fetch high-resolution album artwork, artist details, track duration, and full audio streams. The conversion engine delivers 320kbps, 256kbps, 192kbps, and 128kbps MP3 files with complete ID3 tags for your offline music library.',
+    steps: [
+      { title: 'Copy the Spotify link', desc: 'Open Spotify, tap the three dots on any song, album, or playlist, click "Share", and select "Copy Link".' },
+      { title: 'Paste into URL2Vid', desc: 'Paste your Spotify link into the input box above and click the "Extract" button.' },
+      { title: 'Download MP3 file', desc: 'Select your preferred audio bitrate (320 kbps, 256 kbps, 192 kbps, or 128 kbps) and save the MP3 audio file.' }
+    ],
+    faqs: [
+      { question: 'Are Spotify downloaders illegal?', answer: 'They are not illegal. Because, we do not crack the DRM protection of Spotify files. We just fetch the song info from their web-API and use alternate music sources to get the mp3 files.' },
+      { question: 'Do I need a Spotify Premium subscription?', answer: 'No! You can download any public track, playlist, or album completely free without a Spotify Premium account.' },
+      { question: 'Can I download entire Spotify playlists?', answer: 'Yes, pasting a playlist link displays every track in the collection so you can download songs individually or in batch.' },
+      { question: 'What audio quality will I get?', answer: 'You can choose between multiple MP3 bitrates up to 320kbps for pristine high-fidelity audio.' },
+      { question: 'Does this work on mobile devices?', answer: 'Yes, our online Spotify downloader works directly in Safari, Chrome, and any modern mobile or desktop browser.' }
+    ],
+    metaTitle: 'Spotify Downloader: Download Spotify Songs & Playlists to MP3 Free | URL2Vid',
+    metaDescription: 'Free online Spotify downloader to save tracks, albums, and playlists as high-quality 320kbps MP3 files. Fast, secure, and no Spotify Premium account needed.'
+  },
+  {
+    path: '/apple-music-downloader',
+    platformName: 'Apple Music',
+    isMusic: true,
+    h1: 'Apple Music Downloader: Download Apple Music Songs & Albums Free',
+    intro: 'Download high-quality MP3 audio from Apple Music songs, albums, and playlists. Enter any Apple Music link to save full-length tracks with album cover art and metadata instantly.',
+    description: 'Our Apple Music downloader unlocks easy offline listening for your favorite Apple Music tracks, albums, and curated playlists. By parsing official Apple Music URLs, the platform resolves track lists, artist credits, high-definition cover art, and crystal-clear audio streams. Choose from multiple audio quality tiers up to 320kbps MP3 without requiring iTunes, Apple Music subscription logins, or third-party apps.',
+    steps: [
+      { title: 'Copy the Apple Music link', desc: 'In Apple Music or your browser, find the track, album, or playlist, click "Share", and select "Copy Link".' },
+      { title: 'Paste the link above', desc: 'Paste the music.apple.com URL into the input field at the top of the page and click "Extract".' },
+      { title: 'Save your MP3 audio', desc: 'Pick your desired MP3 quality and save the track directly to your device.' }
+    ],
+    faqs: [
+      { question: 'Are Apple Music downloaders illegal?', answer: 'They are not illegal. Because, we do not crack the DRM protection of Apple Music files. We just fetch the song info from their web-API and use alternate music sources to get the mp3 files.' },
+      { question: 'Can I download single songs from an album link?', answer: 'Yes! Both single song links and album links with track identifiers are automatically resolved for download.' },
+      { question: 'Can I download full Apple Music albums?', answer: 'Yes, pasting an album link displays all tracks with individual download buttons and title information.' },
+      { question: 'Do I need an Apple ID or active subscription?', answer: 'No Apple ID, login, or subscription is required to use this tool.' },
+      { question: 'What audio format is downloaded?', answer: 'All audio is converted and packaged into standard MP3 format compatible with every media player and phone.' }
+    ],
+    metaTitle: 'Apple Music Downloader: Download Songs & Albums to MP3 | URL2Vid',
+    metaDescription: 'Download Apple Music tracks and albums to 320kbps MP3 for free. No Apple Music subscription or iTunes required. Fast online Apple Music downloader.'
+  },
+  {
+    path: '/youtube-music-downloader',
+    platformName: 'YouTube Music',
+    isMusic: true,
+    h1: 'YouTube Music Downloader: Save YT Music Songs & Playlists to MP3',
+    intro: 'Convert and download YouTube Music tracks, albums, and playlists to MP3 in high bitrate. Paste any music.youtube.com URL to save songs directly to your device.',
+    description: 'Our YouTube Music downloader provides lightning-fast audio extraction for songs, vertical music tracks, and full music playlists hosted on music.youtube.com. Powered by a direct CDN tunneling engine, audio downloads bypass buffering and transcode straight to high-fidelity MP3. Save entire playlists of up to 100 tracks in one session with complete artist and album metadata.',
+    steps: [
+      { title: 'Copy the YouTube Music URL', desc: 'Open music.youtube.com, navigate to the track or playlist, click "Share", and copy the link.' },
+      { title: 'Paste into URL2Vid', desc: 'Paste the music.youtube.com URL into the search bar and press "Extract".' },
+      { title: 'Download high-quality MP3', desc: 'Select your preferred bitrate (up to 320 kbps) and click download to save the audio file.' }
+    ],
+    faqs: [
+      { question: 'Are YouTube Music downloaders illegal?', answer: 'They are not illegal. Because, we do not crack the DRM protection of YouTube Music files. We just fetch the song info from their web-API and use alternate music sources to get the mp3 files.' },
+      { question: 'Can I download YouTube Music playlists?', answer: 'Yes, enter any YouTube Music playlist link to browse all tracks and download them individually or consecutively.' },
+      { question: 'Does this work with music.youtube.com URLs?', answer: 'Yes, both music.youtube.com and standard youtube.com music URLs are fully supported.' },
+      { question: 'Is YouTube Music download free?', answer: 'Yes, URL2Vid is completely free with unlimited downloads and no account required.' },
+      { question: 'Can I download audio on mobile?', answer: 'Yes, works seamlessly on iOS Safari, Android Chrome, and all desktop browsers.' }
+    ],
+    metaTitle: 'YouTube Music Downloader: Download YT Music to MP3 Free | URL2Vid',
+    metaDescription: 'Free YouTube Music downloader to save songs, albums, and playlists to high-quality MP3 audio. Fast, ad-free conversion with no app installation needed.'
+  },
+  {
+    path: '/soundcloud-downloader',
+    platformName: 'SoundCloud',
+    isMusic: true,
+    h1: 'SoundCloud Downloader: Download SoundCloud Songs & Playlists to MP3',
+    intro: 'Download your favorite SoundCloud tracks, remixes, sets, and podcasts in 320kbps MP3 format. Supports standard soundcloud.com links as well as on.soundcloud.com short URLs.',
+    description: 'SoundCloud is the home of independent artists, underground mixtapes, DJ sets, and exclusive audio tracks. Our SoundCloud downloader extracts audio streams directly from SoundCloud servers, converting HLS and progressive audio into pristine MP3 files. Whether you are downloading a single underground release or an entire playlist, URL2Vid preserves high-definition sound with embedded cover art and zero quality degradation.',
+    steps: [
+      { title: 'Copy the SoundCloud link', desc: 'Open SoundCloud, click "Share" on any track or set, and copy the link (both soundcloud.com and on.soundcloud.com supported).' },
+      { title: 'Paste into URL2Vid', desc: 'Paste the SoundCloud URL into the extraction field above and click "Extract".' },
+      { title: 'Download your MP3 track', desc: 'Select your preferred quality from 128 kbps to 320 kbps and save the file instantly.' }
+    ],
+    faqs: [
+      { question: 'Are SoundCloud downloaders illegal?', answer: 'They are not illegal. Because, we do not crack the DRM protection of SoundCloud files. We just fetch the song info from their web-API and use alternate music sources to get the mp3 files.' },
+      { question: 'Does this work with on.soundcloud.com short links?', answer: 'Yes! Our tool automatically follows short links and resolves the full track for instant downloading.' },
+      { question: 'Can I download SoundCloud sets and playlists?', answer: 'Yes, playlist and album sets are parsed so you can download each track directly.' },
+      { question: 'Do I need a SoundCloud Go+ subscription?', answer: 'No subscription or SoundCloud account is needed. All public tracks are completely free to download.' },
+      { question: 'What quality audio do I get?', answer: 'We convert the original SoundCloud audio stream into high-bitrate MP3 up to 320kbps.' }
+    ],
+    metaTitle: 'SoundCloud Downloader: Download SoundCloud to 320kbps MP3 Free | URL2Vid',
+    metaDescription: 'Download SoundCloud tracks, remixes, and playlists to high-quality MP3 for free. Supports on.soundcloud.com short links with no registration required.'
   }
 ];

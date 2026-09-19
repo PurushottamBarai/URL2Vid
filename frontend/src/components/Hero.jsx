@@ -12,11 +12,15 @@ const STATUS_MESSAGES = [
   "Finalizing...",
 ];
 
-const Hero = React.memo(({ onFetch, isLoading, customTitle, customSubtitle }) => {
+const Hero = React.memo(({ onFetch, isLoading, customTitle, customSubtitle, defaultFormat = 'best' }) => {
   const { t } = useLanguage();
   const [url, setUrl] = useState('');
   const [error, setError] = useState('');
-  const [format, setFormat] = useState('best');
+  const [format, setFormat] = useState(defaultFormat);
+
+  useEffect(() => {
+    if (defaultFormat) setFormat(defaultFormat);
+  }, [defaultFormat]);
   const [statusIndex, setStatusIndex] = useState(0);
 
   useEffect(() => {

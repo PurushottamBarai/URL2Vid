@@ -18,7 +18,9 @@ const PlatformLanding = ({
   steps, 
   faqs, 
   metaTitle, 
-  metaDescription 
+  metaDescription,
+  isMusic = false,
+  defaultFormat,
 }) => {
   const {
     isLoading,
@@ -81,6 +83,7 @@ const PlatformLanding = ({
           isLoading={isLoading} 
           customTitle={h1}
           customSubtitle={intro}
+          defaultFormat={defaultFormat || (isMusic ? 'audio' : 'best')}
         />
         <ErrorBanner message={error} />
         {isLoading && <LoadingSkeleton />}

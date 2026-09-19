@@ -10,6 +10,7 @@ const Home = lazy(() => import('./pages/Home'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const PlatformLanding = lazy(() => import('./pages/PlatformLanding'));
 const UserGuide = lazy(() => import('./pages/UserGuide'));
+const Contact = lazy(() => import('./pages/Contact'));
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -47,6 +48,7 @@ const App = () => {
               ))}
               
               <Route path="/user-guide" element={<UserGuide />} />
+              <Route path="/contact" element={<Contact />} />
               <Route path="/guide" element={<Navigate to="/user-guide" replace />} />
               <Route path="/x-video-downloader" element={<Navigate to="/twitter-video-downloader" replace />} />
               
@@ -83,27 +85,20 @@ const App = () => {
                       {label}
                     </a>
                   ))}
-                  {/* Music platforms — scroll to search */}
+                  {/* Music platforms */}
                   {[
-                    'Spotify Downloader',
-                    'YouTube Music Downloader',
-                    'SoundCloud Downloader',
-                    'Apple Music Downloader',
-                  ].map((label) => (
-                    <button
-                      key={label}
-                      type="button"
-                      onClick={() => {
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                        setTimeout(() => {
-                          const el = document.getElementById('video-url-input');
-                          if (el) el.focus();
-                        }, 300);
-                      }}
-                      className="text-sm text-text-secondary hover:text-accent hover:underline transition-colors cursor-pointer text-center"
+                    { label: 'Spotify Downloader', to: '/spotify-downloader' },
+                    { label: 'Apple Music Downloader', to: '/apple-music-downloader' },
+                    { label: 'YouTube Music Downloader', to: '/youtube-music-downloader' },
+                    { label: 'SoundCloud Downloader', to: '/soundcloud-downloader' },
+                  ].map(({ label, to }) => (
+                    <a
+                      key={to}
+                      href={to}
+                      className="text-sm text-text-secondary hover:text-accent hover:underline transition-colors"
                     >
                       {label}
-                    </button>
+                    </a>
                   ))}
                 </div>
               </div>
@@ -111,7 +106,13 @@ const App = () => {
               {/* Bottom bar */}
               <div className="border-t border-border/60 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-text-secondary opacity-75">
                 <p>© {new Date().getFullYear()} URL2Vid. All rights reserved.</p>
-                <p>For personal and educational use only.</p>
+                <div className="flex items-center gap-3">
+                  <a href="/user-guide" className="hover:text-accent hover:underline">User Guide</a>
+                  <span>•</span>
+                  <a href="/contact" className="hover:text-accent hover:underline">Contact</a>
+                  <span>•</span>
+                  <p>For personal and educational use only.</p>
+                </div>
               </div>
             </div>
           </footer>

@@ -29,12 +29,12 @@ const quickPlatforms = [
   { name: 'Threads', path: '/threads-video-downloader', Icon: SiThreads, color: 'text-black' },
 ];
 
-// Music platforms — handled via the main search bar, not dedicated landing pages
+// Music platforms — dedicated landing pages
 const musicPlatforms = [
-  { name: 'Spotify', Icon: SiSpotify, color: 'text-[#1DB954]' },
-  { name: 'YouTube Music', Icon: SiYoutubemusic, color: 'text-red-500' },
-  { name: 'SoundCloud', Icon: FaSoundcloud, color: 'text-[#FF5500]' },
-  { name: 'Apple Music', Icon: SiApplemusic, color: 'text-[#FC3C44]' },
+  { name: 'Spotify', path: '/spotify-downloader', Icon: SiSpotify, color: 'text-[#1DB954]' },
+  { name: 'Apple Music', path: '/apple-music-downloader', Icon: SiApplemusic, color: 'text-[#FC3C44]' },
+  { name: 'YouTube Music', path: '/youtube-music-downloader', Icon: SiYoutubemusic, color: 'text-red-500' },
+  { name: 'SoundCloud', path: '/soundcloud-downloader', Icon: FaSoundcloud, color: 'text-[#FF5500]' },
 ];
 
 const Navbar = () => {
@@ -162,18 +162,15 @@ const Navbar = () => {
                     {musicPlatforms.map((p) => {
                       const Icon = p.Icon;
                       return (
-                        <button
+                        <Link
                           key={p.name}
-                          type="button"
-                          onClick={() => {
-                            setIsPlatformsOpen(false);
-                            handleScrollTo('video-url-input', true);
-                          }}
+                          to={p.path}
+                          onClick={() => setIsPlatformsOpen(false)}
                           className="flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors w-full text-left"
                         >
                           <Icon className={`w-3.5 h-3.5 shrink-0 ${p.color}`} />
                           <span className="truncate">{p.name}</span>
-                        </button>
+                        </Link>
                       );
                     })}
                   </div>
@@ -195,6 +192,13 @@ const Navbar = () => {
           >
             {t('navFaq')}
           </button>
+
+          <Link
+            to="/contact"
+            className="px-3 py-1.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface transition-colors cursor-pointer"
+          >
+            Contact
+          </Link>
         </nav>
 
         <div className="flex items-center gap-2.5">
@@ -304,18 +308,15 @@ const Navbar = () => {
                 {musicPlatforms.map((p) => {
                   const Icon = p.Icon;
                   return (
-                    <button
+                    <Link
                       key={p.name}
-                      type="button"
-                      onClick={() => {
-                        setIsMenuOpen(false);
-                        handleScrollTo('video-url-input', true);
-                      }}
+                      to={p.path}
+                      onClick={() => setIsMenuOpen(false)}
                       className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-surface w-full text-left"
                     >
                       <Icon className={`w-3.5 h-3.5 shrink-0 ${p.color}`} />
                       <span className="truncate">{p.name}</span>
-                    </button>
+                    </Link>
                   );
                 })}
               </div>
@@ -335,6 +336,14 @@ const Navbar = () => {
           >
             {t('navFaq')}
           </button>
+
+          <Link
+            to="/contact"
+            onClick={() => setIsMenuOpen(false)}
+            className="w-full text-left px-3 py-2 rounded-lg text-sm text-text-secondary hover:text-text-primary hover:bg-surface block"
+          >
+            Contact
+          </Link>
         </div>
       )}
     </header>

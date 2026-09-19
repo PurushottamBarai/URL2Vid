@@ -5,6 +5,9 @@ import * as pinterestService from "../services/pinterestService.js";
 import * as threadsService from "../services/threadsService.js";
 import * as linkedinService from "../services/linkedinService.js";
 import * as spotifyService from "../services/spotifyService.js";
+import * as appleMusicService from "../services/appleMusicService.js";
+import * as youtubeMusicService from "../services/youtubeMusicService.js";
+import * as soundcloudService from "../services/soundcloudService.js";
 import * as ffmpegService from "../services/ffmpegService.js";
 import { processVideoFormats } from "../utils/formatHelpers.js";
 import { detectPlatform } from "../utils/platformDetector.js";
@@ -23,6 +26,15 @@ const resolveVideoInfo = async (platform, url) => {
       break;
     case "spotify":
       info = await spotifyService.fetchSpotifyInfo(url);
+      break;
+    case "applemusic":
+      info = await appleMusicService.fetchAppleMusicInfo(url);
+      break;
+    case "youtubemusic":
+      info = await youtubeMusicService.fetchYouTubeMusicInfo(url);
+      break;
+    case "soundcloud":
+      info = await soundcloudService.fetchSoundCloudInfo(url);
       break;
     case "snapchat":
       info = await snapchatService.fetchVideoInfo(url);

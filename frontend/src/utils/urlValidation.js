@@ -13,6 +13,9 @@ const urlPatterns = [
   { name: 'Pinterest', regex: /^(?:https?:\/\/)?(?:(?:[\w-]+\.)?pinterest\.[a-z]+(?:\.[a-z]+)?\/(?:pin\/|ideas\/|[^/?#]+\/[^/?#]+\/)|pin\.it\/)/ },
   { name: 'Rumble', regex: /^(?:https?:\/\/)?(?:www\.)?rumble\.com\/(?:v\w[^/?#]*\.html|embed\/)/ },
   { name: 'Spotify', regex: /^(?:https?:\/\/)?(?:open\.spotify\.com\/(?:track|playlist|album|artist)\/|spotify\.link\/)/ },
+  { name: 'Apple Music', regex: /^(?:https?:\/\/)?(?:music\.apple\.com|itunes\.apple\.com)\// },
+  { name: 'YouTube Music', regex: /^(?:https?:\/\/)?music\.youtube\.com\/(?:watch\?|playlist\?)/ },
+  { name: 'SoundCloud', regex: /^(?:https?:\/\/)?(?:(?:www\.|m\.)?soundcloud\.com\/|on\.soundcloud\.com\/)/ },
 ];
 
 export const checkUrlStatus = (urlString) => {

@@ -19,10 +19,10 @@ const videoPlatforms = [
 ];
 
 const musicPlatforms = [
-  { name: 'Spotify', text: 'Spotify', Icon: SiSpotify, activeColor: 'group-hover:text-[#1DB954]' },
-  { name: 'YouTube Music', text: 'YouTube Music', Icon: SiYoutubemusic, activeColor: 'group-hover:text-[#FF0000]' },
-  { name: 'SoundCloud', text: 'SoundCloud', Icon: FaSoundcloud, activeColor: 'group-hover:text-[#FF5500]' },
-  { name: 'Apple Music', text: 'Apple Music', Icon: SiApplemusic, activeColor: 'group-hover:text-[#FC3C44]' },
+  { name: 'Spotify', text: 'Spotify', path: '/spotify-downloader', Icon: SiSpotify, activeColor: 'group-hover:text-[#1DB954]' },
+  { name: 'Apple Music', text: 'Apple Music', path: '/apple-music-downloader', Icon: SiApplemusic, activeColor: 'group-hover:text-[#FC3C44]' },
+  { name: 'YouTube Music', text: 'YouTube Music', path: '/youtube-music-downloader', Icon: SiYoutubemusic, activeColor: 'group-hover:text-[#FF0000]' },
+  { name: 'SoundCloud', text: 'SoundCloud', path: '/soundcloud-downloader', Icon: FaSoundcloud, activeColor: 'group-hover:text-[#FF5500]' },
 ];
 
 const SupportedPlatforms = () => {
@@ -76,9 +76,9 @@ const SupportedPlatforms = () => {
         </h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
           {musicPlatforms.map((platform) => (
-            <button
+            <Link
               key={platform.name}
-              type="button"
+              to={platform.path}
               onClick={handlePlatformClick}
               className="group flex flex-col items-center justify-center gap-3 p-4 bg-surface border border-border rounded-xl transition-all hover:border-accent hover:shadow-sm cursor-pointer w-full"
             >
@@ -89,7 +89,7 @@ const SupportedPlatforms = () => {
               <span className="text-sm font-medium text-text-primary text-center">
                 {platform.text}
               </span>
-            </button>
+            </Link>
           ))}
         </div>
       </div>

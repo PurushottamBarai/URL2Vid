@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { ChevronDown, Download, Play, Pause, Music } from 'lucide-react';
 import { API_BASE_URL } from '../config';
@@ -50,7 +50,7 @@ const formatLabel = (fmt, durationSec, topFilesize) => {
 };
 
 const VideoResults = React.memo(({ data, originalUrl, initialFormat = 'video' }) => {
-  const isAudio = initialFormat === 'audio' || data?.platform === 'spotify';
+  const isAudio = initialFormat === 'audio' || data?.platform === 'spotify' || data?.platform === 'applemusic' || data?.platform === 'youtubemusic' || data?.platform === 'soundcloud';
   const [selectedFormat, setSelectedFormat] = useState(isAudio ? '192k' : 'best');
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadingTrackId, setDownloadingTrackId] = useState(null);
@@ -215,6 +215,21 @@ const VideoResults = React.memo(({ data, originalUrl, initialFormat = 'video' })
               {data.platform === 'spotify' && (
                 <span className="text-xs uppercase tracking-wider font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                   Spotify {isCollection ? (data.spotifyType || 'Collection') : 'Audio'}
+                </span>
+              )}
+              {data.platform === 'applemusic' && (
+                <span className="text-xs uppercase tracking-wider font-bold px-2 py-0.5 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                  Apple Music {isCollection ? (data.spotifyType || 'Collection') : 'Audio'}
+                </span>
+              )}
+              {data.platform === 'youtubemusic' && (
+                <span className="text-xs uppercase tracking-wider font-bold px-2 py-0.5 rounded bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20">
+                  YouTube Music {isCollection ? (data.spotifyType || 'Collection') : 'Audio'}
+                </span>
+              )}
+              {data.platform === 'soundcloud' && (
+                <span className="text-xs uppercase tracking-wider font-bold px-2 py-0.5 rounded bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20">
+                  SoundCloud {isCollection ? (data.spotifyType || 'Collection') : 'Audio'}
                 </span>
               )}
             </div>

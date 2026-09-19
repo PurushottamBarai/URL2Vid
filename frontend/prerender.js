@@ -10,7 +10,7 @@ const __dirname = path.dirname(__filename);
 
 const PORT = 54321;
 const DIST_DIR = path.resolve(__dirname, 'dist');
-const routes = ['/', '/404', '/user-guide', ...platformsData.map((p) => p.path)];
+const routes = ['/', '/404', '/user-guide', '/contact', ...platformsData.map((p) => p.path)];
 
 async function prerender() {
   console.log(`Starting prerendering for ${routes.length} routes...`);
