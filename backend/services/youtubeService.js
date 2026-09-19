@@ -5,11 +5,11 @@ import { videoInfoCache } from '../utils/cache.js';
 
 // --- Tier 3: Invidious Pool Configuration ---
 const FALLBACK_INVIDIOUS_INSTANCES = [
-  'https://inv.nadeko.net',
+  'https://invidious.f5.si',
   'https://invidious.nerdvpn.de',
+  'https://inv.nadeko.net',
   'https://yt.chocolatemoo53.com',
   'https://invidious.tiekoetter.com',
-  'https://invidious.f5.si',
   'https://inv.zzls.xyz',
   'https://invidious.perennialte.ch',
   'https://invidious.jing.rocks'
@@ -31,7 +31,7 @@ const refreshInvidiousPool = async () => {
     const data = await res.json();
     if (Array.isArray(data)) {
       const online = data
-        .filter(([, info]) => info.type === 'https' && info.uri && info.monitor && !info.monitor.down)
+        .filter(([, info]) => info.type === 'https' && info.uri && (!info.monitor || !info.monitor.down))
         .map(([, info]) => info.uri.replace(/\/$/, ''));
       if (online.length > 0) {
         dynamicInvidiousPool = [...new Set([...online, ...FALLBACK_INVIDIOUS_INSTANCES])];
@@ -182,6 +182,82 @@ const getStreamWithRedirects = (streamUrl, maxRedirects = 5) => {
   });
 };
 
+const parseIsoDuration = (isoStr) => {
+  if (!isoStr || typeof isoStr !== 'string') return null;
+  const match = isoStr.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/i);
+  if (!match) return null;
+  const hours = parseInt(match[1] || 0, 10);
+  const mins = parseInt(match[2] || 0, 10);
+  const secs = parseInt(match[3] || 0, 10);
+  const total = hours * 3600 + mins * 60 + secs;
+  return total > 0 ? total : null;
+};
+
+const parseInvidiousFormats = (data, duration) => {
+  if (!data) return [];
+  const dur = duration || (data.lengthSeconds ? parseInt(data.lengthSeconds, 10) : null);
+  const adaptiveFormats = Array.isArray(data.adaptiveFormats) ? data.adaptiveFormats : [];
+  const formatStreams = Array.isArray(data.formatStreams) ? data.formatStreams : [];
+
+  const audioTracks = adaptiveFormats.filter((f) => f.type?.includes('audio') || f.container === 'm4a');
+  const bestAudio = audioTracks.find((f) => f.itag === '140') || audioTracks[0];
+  const audioBytes = bestAudio?.clen
+    ? parseInt(bestAudio.clen, 10)
+    : dur
+      ? Math.round((128000 * dur) / 8)
+      : 0;
+
+  const parsed = [];
+  const seenRes = new Set();
+
+  for (const s of formatStreams) {
+    const res = s.qualityLabel || s.size || s.resolution || '720p';
+    const bytes = s.clen ? parseInt(s.clen, 10) : null;
+    seenRes.add(res);
+    parsed.push({
+      format_id: String(s.itag || '22'),
+      ext: s.container || 'mp4',
+      resolution: res,
+      vcodec: s.encoding || 'h264',
+      acodec: 'mp4a.40.2',
+      url: s.url,
+      filesize: bytes,
+      hasVideo: true,
+      hasAudio: true,
+    });
+  }
+
+  for (const s of adaptiveFormats) {
+    if (!s.type?.includes('video') && !s.qualityLabel && !s.resolution) continue;
+    const isMp4 = s.type?.includes('mp4') || s.container === 'mp4' || s.encoding?.includes('avc') || s.encoding?.includes('h264');
+    if (!isMp4) continue;
+    const res = s.qualityLabel || s.resolution || '';
+    if (!res || seenRes.has(res)) continue;
+    seenRes.add(res);
+
+    const videoBytes = s.clen
+      ? parseInt(s.clen, 10)
+      : s.bitrate && dur
+        ? Math.round((parseInt(s.bitrate, 10) * dur) / 8)
+        : null;
+    const totalBytes = videoBytes ? videoBytes + audioBytes : null;
+
+    parsed.push({
+      format_id: String(s.itag || '137'),
+      ext: 'mp4',
+      resolution: res,
+      vcodec: 'h264',
+      acodec: 'mp4a.40.2',
+      url: s.url,
+      filesize: totalBytes,
+      hasVideo: true,
+      hasAudio: true,
+    });
+  }
+
+  return parsed;
+};
+
 export const fetchVideoInfo = async (url) => {
   const cached = videoInfoCache.get(url);
   if (cached && cached.duration) {
@@ -193,156 +269,190 @@ export const fetchVideoInfo = async (url) => {
     throw new Error('Invalid YouTube URL.');
   }
 
-  // Tier 1: YouTube oEmbed + YouTubei Internal Player API
-  try {
-    let title = null;
-    let thumbnail = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
-    let duration = null;
+  let title = null;
+  let thumbnail = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+  let duration = null;
+  let formats = [];
 
+  // Multi-source extraction: oEmbed, YouTubei, and Invidious
+  const oembedPromise = (async () => {
     try {
-      const oembedRes = await fetch(
+      const res = await fetch(
         `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`,
         {
           signal: AbortSignal.timeout(3500),
           headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
         }
       );
-      if (oembedRes.ok) {
-        const oembedData = await oembedRes.json();
-        if (oembedData.title) title = oembedData.title;
-        if (oembedData.thumbnail_url) thumbnail = oembedData.thumbnail_url;
+      if (res.ok) {
+        const d = await res.json();
+        return { title: d.title, thumbnail: d.thumbnail_url };
       }
     } catch {}
+    return null;
+  })();
 
+  const youtubeiPromise = (async () => {
     try {
-      const playerRes = await fetch('https://www.youtube.com/youtubei/v1/player?prettyPrint=false', {
+      const res = await fetch('https://www.youtube.com/youtubei/v1/player?prettyPrint=false', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           videoId,
           context: { client: { clientName: 'WEB', clientVersion: '2.20240722.01.00', hl: 'en', gl: 'US' } }
         }),
-        signal: AbortSignal.timeout(3000)
+        signal: AbortSignal.timeout(3500),
       });
-      if (playerRes.ok) {
-        const playerData = await playerRes.json();
-        if (playerData.videoDetails?.lengthSeconds) {
-          duration = parseInt(playerData.videoDetails.lengthSeconds, 10);
-        }
-        if (!title && playerData.videoDetails?.title) {
-          title = playerData.videoDetails.title;
-        }
+      if (res.ok) {
+        const d = await res.json();
+        const dur = d.videoDetails?.lengthSeconds || d.microformat?.playerMicroformatRenderer?.lengthSeconds;
+        return {
+          duration: dur ? parseInt(dur, 10) : null,
+          title: d.videoDetails?.title || null,
+        };
       }
     } catch {}
+    return null;
+  })();
 
-    if (!duration) {
+  const invidiousPromise = (async () => {
+    await refreshInvidiousPool();
+    const candidatePool = dynamicInvidiousPool.slice(0, 4);
+    for (const base of candidatePool) {
       try {
-        const watchRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
-          signal: AbortSignal.timeout(3000),
-          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
-        });
-        if (watchRes.ok) {
-          const html = await watchRes.text();
-          const durMatch = html.match(/"approxDurationMs":"(\d+)"/) || html.match(/"lengthSeconds":"(\d+)"/);
-          if (durMatch) {
-            duration = Math.round(parseInt(durMatch[1], 10) / (durMatch[0].includes('approxDurationMs') ? 1000 : 1));
-          }
+        const d = await fetchFromInstance(base, videoId, 0);
+        if (d && (d.lengthSeconds || d.title || d.adaptiveFormats)) {
+          return d;
         }
       } catch {}
     }
+    return null;
+  })();
 
-    if (title) {
-      const result = {
-        title,
-        thumbnail,
-        duration,
-        videoId,
-        embedDownloadUrl: `https://v2.y2jar.cc/?id=${videoId}&appearance=dark`,
-        y2mateUrl: `https://v38.www-y2mate.com/`,
-        isEmbedFallback: true,
-        formats: [
-          {
-            format_id: '137',
-            ext: 'mp4',
-            resolution: '1920x1080',
-            width: 1920,
-            height: 1080,
-            vcodec: 'h264',
-            acodec: 'mp4a',
-            hasVideo: true,
-            filesize: null,
-          },
-          {
-            format_id: '22',
-            ext: 'mp4',
-            resolution: '1280x720',
-            width: 1280,
-            height: 720,
-            vcodec: 'h264',
-            acodec: 'mp4a',
-            hasVideo: true,
-            filesize: null,
-          },
-          {
-            format_id: '18',
-            ext: 'mp4',
-            resolution: '640x360',
-            width: 640,
-            height: 360,
-            vcodec: 'h264',
-            acodec: 'mp4a',
-            hasVideo: true,
-            filesize: null,
-          },
-        ],
-      };
+  const [oembedData, youtubeiData, invidiousData] = await Promise.all([
+    oembedPromise,
+    youtubeiPromise,
+    invidiousPromise,
+  ]);
 
-      videoInfoCache.set(url, result);
-      return result;
+  if (oembedData?.title) title = oembedData.title;
+  if (oembedData?.thumbnail) thumbnail = oembedData.thumbnail;
+
+  if (youtubeiData?.title && !title) title = youtubeiData.title;
+  if (youtubeiData?.duration) duration = youtubeiData.duration;
+
+  if (invidiousData) {
+    if (!title && invidiousData.title) title = invidiousData.title;
+    if (!duration && invidiousData.lengthSeconds) duration = parseInt(invidiousData.lengthSeconds, 10);
+    const invFormats = parseInvidiousFormats(invidiousData, duration);
+    if (invFormats.length > 0) {
+      formats = invFormats;
     }
-  } catch (err) {
-    process.stdout.write(`[youtubeService] Tier 1 oEmbed/YouTubei failed: ${err.message}\n`);
   }
 
-  // Tier 2: Invidious Dynamic Instance Pool
-  try {
-    await refreshInvidiousPool();
-    const candidatePool = dynamicInvidiousPool.slice(0, 6);
-    const promises = candidatePool.map((base) => fetchFromInstance(base, videoId));
-    const data = await Promise.any(promises);
+  // Resilient fallback for duration: check /shorts/ and /watch page metadata
+  if (!duration) {
+    const pageUrls = [
+      `https://www.youtube.com/shorts/${videoId}`,
+      `https://www.youtube.com/watch?v=${videoId}`,
+    ];
+    for (const pageUrl of pageUrls) {
+      try {
+        const pRes = await fetch(pageUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+            'Accept-Language': 'en-US,en;q=0.9',
+          },
+          signal: AbortSignal.timeout(3000),
+        });
+        if (pRes.ok) {
+          const html = await pRes.text();
+          const isoMatch = html.match(/itemprop="duration"\s+content="([^"]+)"/i);
+          if (isoMatch && isoMatch[1]) {
+            duration = parseIsoDuration(isoMatch[1]);
+          }
+          if (!duration) {
+            const msMatch = html.match(/"approxDurationMs":"(\d+)"/);
+            if (msMatch) duration = Math.round(parseInt(msMatch[1], 10) / 1000);
+          }
+          if (!duration) {
+            const secMatch = html.match(/"lengthSeconds":"(\d+)"/);
+            if (secMatch) duration = parseInt(secMatch[1], 10);
+          }
+          if (duration) break;
+        }
+      } catch {}
+    }
+  }
 
-    const formatStreams = Array.isArray(data.formatStreams) ? data.formatStreams : [];
+  // Dynamic filesize calculation: If formats were not provided from Invidious CDN, generate format options
+  // where filesize dynamically corresponds to this exact video's duration
+  if (formats.length === 0) {
+    const dur = duration && duration > 0 ? duration : null;
+    formats = [
+      {
+        format_id: '137',
+        ext: 'mp4',
+        resolution: '1080p',
+        width: 1920,
+        height: 1080,
+        vcodec: 'h264',
+        acodec: 'mp4a',
+        hasVideo: true,
+        filesize: dur ? Math.round((4128 * 1000 * dur) / 8) : null,
+      },
+      {
+        format_id: '22',
+        ext: 'mp4',
+        resolution: '720p',
+        width: 1280,
+        height: 720,
+        vcodec: 'h264',
+        acodec: 'mp4a',
+        hasVideo: true,
+        filesize: dur ? Math.round((2328 * 1000 * dur) / 8) : null,
+      },
+      {
+        format_id: '135',
+        ext: 'mp4',
+        resolution: '480p',
+        width: 854,
+        height: 480,
+        vcodec: 'h264',
+        acodec: 'mp4a',
+        hasVideo: true,
+        filesize: dur ? Math.round((1328 * 1000 * dur) / 8) : null,
+      },
+      {
+        format_id: '18',
+        ext: 'mp4',
+        resolution: '360p',
+        width: 640,
+        height: 360,
+        vcodec: 'h264',
+        acodec: 'mp4a',
+        hasVideo: true,
+        filesize: dur ? Math.round((778 * 1000 * dur) / 8) : null,
+      },
+    ];
+  }
 
-    const formats = formatStreams.map((s) => ({
-      format_id: String(s.itag || '18'),
-      ext: s.container || 'mp4',
-      resolution: s.size || s.resolution || s.qualityLabel || '640x360',
-      vcodec: s.encoding || 'h264',
-      acodec: 'mp4a.40.2',
-      url: s.url,
-      filesize: s.clen ? parseInt(s.clen, 10) : null,
-    }));
-
+  if (title) {
     const result = {
-      title: data.title || 'YouTube Video',
-      thumbnail: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
-      duration: data.lengthSeconds,
+      title,
+      thumbnail,
+      duration,
+      videoId,
       formats,
       embedDownloadUrl: `https://v2.y2jar.cc/?id=${videoId}&appearance=dark`,
       y2mateUrl: `https://v38.www-y2mate.com/`,
-      isEmbedFallback: false,
+      isEmbedFallback: true,
     };
 
     videoInfoCache.set(url, result);
     return result;
-  } catch (tier2Err) {
-    const errorDetails = Array.isArray(tier2Err?.errors)
-      ? tier2Err.errors.map((e) => e?.message || String(e)).join('; ')
-      : tier2Err.message;
-    process.stdout.write(`[youtubeService] Tier 2 Invidious pool failed: ${tier2Err.message} (reasons: ${errorDetails})\n`);
   }
 
-  // Tier 3: Final Fallback / Error Handling
   throw new Error('We are unable to fulfill the request for YouTube right now. Please retry after some time, or try our other supported platforms.');
 };
 

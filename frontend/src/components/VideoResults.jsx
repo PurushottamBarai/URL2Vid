@@ -14,7 +14,7 @@ const formatDuration = (sec) => {
   if (hrs > 0) {
     return `${hrs}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   }
-  return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  return `${mins}:${String(secs).padStart(2, '0')}`;
 };
 
 const formatBytes = (bytes, isEstimated = false) => {
@@ -47,17 +47,16 @@ const formatLabel = (fmt, durationSec, topFilesize) => {
   if (!sizeBytes && durationSec && fmt.tbr) sizeBytes = Math.round((fmt.tbr * 1000 * durationSec) / 8);
   if (!sizeBytes && topFilesize) sizeBytes = topFilesize;
 
-  if (!sizeBytes) {
+  if (!sizeBytes && durationSec && durationSec > 0) {
     const res = fmt.resolution || '';
     const match = res.match(/(\d+)x(\d+)/) || res.match(/(\d+)p/i);
     const h = match ? Math.min(parseInt(match[1], 10), parseInt(match[2] || match[1], 10)) : 720;
-    const dur = durationSec && durationSec > 0 ? durationSec : 60;
     const kbps = h >= 1080 ? 4000 : h >= 720 ? 2200 : h >= 480 ? 1200 : 650;
-    sizeBytes = Math.round((kbps * 1000 * dur) / 8);
+    sizeBytes = Math.round((kbps * 1000 * durationSec) / 8);
   }
 
-  const isEstimated = Boolean(fmt.isEstimated || (!fmt.filesize && sizeBytes) || !fmt.filesize);
-  const sizeStr = fmt.sizeLabel || formatBytes(sizeBytes, isEstimated);
+  const isEstimated = Boolean(fmt.isEstimated || (!fmt.filesize && sizeBytes));
+  const sizeStr = fmt.sizeLabel || (sizeBytes ? formatBytes(sizeBytes, isEstimated) : null);
   return `${fmt.resolution || 'Unknown'} ${fmt.ext ? `(.${fmt.ext})` : ''}${sizeStr ? ` - ${sizeStr}` : ''}`;
 };
 
@@ -112,15 +111,14 @@ const VideoResults = React.memo(({ data, originalUrl, initialFormat = 'video' })
 
   const defaultVideoOptionLabel = useMemo(() => {
     let topSize = topVideoFormat?.filesize;
-    if (!topSize) {
+    if (!topSize && data.duration && data.duration > 0) {
       const res = topVideoFormat?.resolution || '';
       const match = res.match(/(\d+)x(\d+)/) || res.match(/(\d+)p/i);
       const h = match ? Math.min(parseInt(match[1], 10), parseInt(match[2] || match[1], 10)) : 1080;
-      const dur = data.duration && data.duration > 0 ? data.duration : 60;
       const kbps = h >= 1080 ? 4000 : h >= 720 ? 2200 : h >= 480 ? 1200 : 650;
-      topSize = Math.round((kbps * 1000 * dur) / 8);
+      topSize = Math.round((kbps * 1000 * data.duration) / 8);
     }
-    const isEstimated = Boolean(topVideoFormat?.isEstimated || !topVideoFormat?.filesize);
+    const isEstimated = Boolean(topVideoFormat?.isEstimated || (!topVideoFormat?.filesize && topSize));
     const sizeStr = topVideoFormat?.sizeLabel || (topSize ? formatBytes(topSize, isEstimated) : '');
     const metaStr = sizeStr ? ` - ${sizeStr}` : '';
     return initialFormat === 'mute' ? `Best Video (No Sound)${metaStr}` : `Best Video (MP4)${metaStr}`;

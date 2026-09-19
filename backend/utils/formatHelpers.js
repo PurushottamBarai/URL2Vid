@@ -31,21 +31,21 @@ export const processVideoFormats = (rawFormats, duration) => {
     return 400;
   };
 
-  const effectiveDuration = duration && duration > 0 ? duration : 60;
+  const effectiveDuration = duration && duration > 0 ? duration : null;
 
   // Find top audio track to account for audio size when video tracks are video-only
   const audioTrack = rawFormats.find(
     (f) => f.vcodec === 'none' && f.acodec !== 'none' && (f.filesize || f.tbr)
   );
   const audioBitrateKbps = audioTrack?.tbr || audioTrack?.abr || 128;
-  const audioFilesize = audioTrack?.filesize || Math.round((audioBitrateKbps * 1000 * effectiveDuration) / 8);
+  const audioFilesize = audioTrack?.filesize || (effectiveDuration ? Math.round((audioBitrateKbps * 1000 * effectiveDuration) / 8) : 0);
 
   let formats = rawFormats
     .filter((f) => f.vcodec !== 'none' || f.acodec !== 'none')
     .map((f) => {
-      let isEstimated = false;
+      let isEstimated = Boolean(f.isEstimated);
       let filesize = f.filesize || f.filesize_approx || null;
-      if (!filesize) {
+      if (!filesize && effectiveDuration) {
         const bitrateKbps =
           f.tbr || (f.vbr || 0) + (f.abr || 0) || estimateBitrateForRes(f.width, f.height, f.resolution);
         if (bitrateKbps && bitrateKbps > 0) {
