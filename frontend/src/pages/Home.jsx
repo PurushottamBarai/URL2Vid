@@ -13,8 +13,8 @@ import FAQ, { homeFaqs } from '../components/FAQ';
 
 import SEO from '../components/SEO';
 
-const HOME_TITLE = 'URL2Vid: Download Videos from Any URL | Free Video Downloader';
-const HOME_DESCRIPTION = 'Free, fast online video downloader. Download videos from YouTube, Instagram, Facebook, Twitter (X), Reddit, and more simply by pasting the URL.';
+const HOME_TITLE = 'URL2Vid: Download Videos & Music from Any URL | Free Downloader';
+const HOME_DESCRIPTION = 'Free online downloader for videos & music. Save from YouTube, Instagram, Facebook, Twitter (X), Spotify, Apple Music, SoundCloud & more — just paste a URL.';
 
 const Home = () => {
   const {

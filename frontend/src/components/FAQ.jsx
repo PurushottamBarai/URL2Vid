@@ -30,6 +30,10 @@ export const homeFaqs = [
   {
     question: 'Does URL2Vid add a watermark to downloaded videos?',
     answer: 'No. Videos are downloaded as close to the original as the source platform provides — no added watermark.'
+  },
+  {
+    question: 'Can I download music from Spotify, Apple Music, or SoundCloud?',
+    answer: 'Yes! URL2Vid supports music downloads from Spotify, Apple Music, YouTube Music, and SoundCloud. Paste any track, album, or playlist link to save high-quality MP3 files.'
   }
 ];
 
