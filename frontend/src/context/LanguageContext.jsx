@@ -24,9 +24,15 @@ import el from '../locales/el.json';
 import cs from '../locales/cs.json';
 import ro from '../locales/ro.json';
 import uk from '../locales/uk.json';
+import mr from '../locales/mr.json';
+import gu from '../locales/gu.json';
+import ta from '../locales/ta.json';
+import ml from '../locales/ml.json';
+import pa from '../locales/pa.json';
 
 const translations = {
-  en, es, pt, de, fr, tr, hi, id, it, ja, ru, th, nl, ar, vi, ko, pl, fil, ms, zh, bn, el, cs, ro, uk
+  en, es, pt, de, fr, tr, hi, id, it, ja, ru, th, nl, ar, vi, ko, pl, fil, ms, zh, bn, el, cs, ro, uk,
+  mr, gu, ta, ml, pa
 };
 
 const languagesMap = {
@@ -34,7 +40,8 @@ const languagesMap = {
   tr: "Türkçe", hi: "हिन्दी", id: "Bahasa Indonesia", it: "Italiano", ja: "日本語",
   ru: "Русский", th: "ไทย", nl: "Nederlands", ar: "العربية", vi: "Tiếng Việt",
   ko: "한국어", pl: "Polski", fil: "Filipino", ms: "Bahasa Melayu", zh: "中文",
-  bn: "বাংলা", el: "Ελληνικά", cs: "Čeština", ro: "Română", uk: "Українська"
+  bn: "বাংলা", el: "Ελληνικά", cs: "Čeština", ro: "Română", uk: "Українська",
+  mr: "मराठी", gu: "ગુજરાતી", ta: "தமிழ்", ml: "മലയാളം", pa: "ਪੰਜਾਬੀ"
 };
 
 export const LANGUAGES = Object.entries(languagesMap).map(([code, label]) => ({

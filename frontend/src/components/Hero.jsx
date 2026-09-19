@@ -30,7 +30,7 @@ const Hero = React.memo(({ onFetch, isLoading, customTitle, customSubtitle, defa
     }
     const timer = setInterval(() => {
       setStatusIndex((prev) => (prev + 1) % STATUS_MESSAGE_KEYS.length);
-    }, 3600);
+    }, 4000);
     return () => clearInterval(timer);
   }, [isLoading]);
 
