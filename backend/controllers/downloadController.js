@@ -74,14 +74,14 @@ const downloadMedia = async (req, res, next) => {
     const platform = detectPlatform(url);
     const isAudio = type === "audio" || platform === "spotify";
 
-    const mediaStream = await resolveMediaStream(platform, url, formatId, type);
-
     const safeTitle = title
       ? title.replace(/[^a-zA-Z0-9 _.-]/g, "").trim().slice(0, 120)
       : "";
     const defaultBase = isAudio ? "audio" : "video";
     const filename = `${safeTitle || defaultBase}.${isAudio ? "mp3" : "mp4"}`;
 
+    // Set headers BEFORE resolving the stream so the browser always
+    // treats this as a file download, never as a JSON error payload.
     res.header("Content-Disposition", `attachment; filename="${filename}"`);
     res.header("Content-Type", isAudio ? "audio/mpeg" : "video/mp4");
     res.flushHeaders();
@@ -89,6 +89,22 @@ const downloadMedia = async (req, res, next) => {
     if (downloadId) {
       downloadStatusMap.set(downloadId, 'started');
       setTimeout(() => downloadStatusMap.delete(downloadId), 60000);
+    }
+
+    let mediaStream;
+    try {
+      mediaStream = await resolveMediaStream(platform, url, formatId, type);
+    } catch (streamErr) {
+      // Headers already sent — cannot send JSON. End the response cleanly.
+      process.stderr.write(
+        `[download] Stream resolution failed after headers sent: ${streamErr.message}\n`,
+      );
+      if (downloadId) {
+        downloadStatusMap.set(downloadId, 'error');
+        setTimeout(() => downloadStatusMap.delete(downloadId), 60000);
+      }
+      res.end();
+      return;
     }
 
     const cleanup = () => {
@@ -114,7 +130,7 @@ const downloadMedia = async (req, res, next) => {
             process.stderr.write(`[download] CDN stream error: ${err.message}\n`);
           }
           cleanup();
-          if (!res.headersSent || !res.writableEnded) res.end();
+          if (!res.writableEnded) res.end();
         });
         return;
       }
@@ -137,7 +153,7 @@ const downloadMedia = async (req, res, next) => {
         process.stderr.write(`[download] Stream error: ${err.message}\n`);
       }
       cleanup();
-      if (!res.headersSent || !res.writableEnded) {
+      if (!res.writableEnded) {
         res.end();
       }
     });
@@ -155,6 +171,7 @@ const downloadMedia = async (req, res, next) => {
       res.end();
     }
   }
+
 };
 
 export { downloadMedia, getDownloadStatus };
